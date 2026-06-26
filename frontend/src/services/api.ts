@@ -59,10 +59,18 @@ export const api = {
     request<{ user: User; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(dto) }),
   getMe: () => request<User>('/auth/me'),
 
-  // Users (admin)
+  // Users (admin / PM)
   getUsers: () => request<User[]>('/users'),
+  createUser: (dto: { email: string; password: string; first_name: string; last_name: string; system_role?: string }) =>
+    request<{ user: User }>('/auth/register', { method: 'POST', body: JSON.stringify(dto) }),
   updateUser: (id: string, dto: Partial<User>) => request<User>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deactivateUser: (id: string) => request<User>(`/users/${id}`, { method: 'DELETE' }),
+  changePassword: (dto: { current_password: string; new_password: string }) =>
+    request<{ ok: boolean }>('/auth/change-password', { method: 'POST', body: JSON.stringify(dto) }),
+
+  // Mail (admin / PM)
+  sendMail: (dto: { to: any; subject: string; message: string }) =>
+    request<{ sent: number; recipients: string[] }>('/mail/send', { method: 'POST', body: JSON.stringify(dto) }),
 
   // Projects
   getProjects: () => request<Project[]>('/projects'),

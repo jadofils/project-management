@@ -8,6 +8,7 @@ import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
+import { AdminOrPMGuard } from './auth/jwt.guard';
 import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
 import { ProjectsController } from './projects/projects.controller';
@@ -27,6 +28,7 @@ import { MembersService } from './members/members.service';
 import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
 import { MailService } from './mail/mail.service';
+import { MailController } from './mail/mail.controller';
 
 const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage];
 
@@ -54,6 +56,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     FeedbackController,
     MembersController,
     MessagesController,
+    MailController,
   ],
   providers: [
     AuthService,
@@ -68,6 +71,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     MembersService,
     MessagesService,
     MailService,
+    AdminOrPMGuard,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

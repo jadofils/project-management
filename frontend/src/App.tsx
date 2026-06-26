@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, FolderKanban, MessageSquare, Bug, Lightbulb, Sparkles, X, Send, ImagePlus,
   Loader2, Trash2, Calendar, LayoutDashboard, MessageCircle, ChevronDown,
-  Flag, Layers, Users, LogOut, UserCog,
+  Flag, Layers, Users, LogOut, UserCog, Mail,
 } from 'lucide-react';
 import { api, isAuthenticated, logout, saveToken, userInitials, userName, type Project, type Task, type User } from './services/api';
 import { TaskDetailModal } from './components/TaskDetailModal';
@@ -12,6 +12,7 @@ import { AuthPage } from './components/AuthPage';
 import { MembersPanel } from './components/MembersPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { UsersAdminPage } from './components/UsersAdminPage';
+import { MailComposer } from './components/MailComposer';
 
 const COLUMNS: { id: string; label: string; color: string; headerColor: string }[] = [
   { id: 'todo',        label: 'To Do',       color: 'bg-gray-50',   headerColor: 'bg-gray-200 text-gray-700' },
@@ -243,6 +244,7 @@ export default function App() {
 
   const [boardTab, setBoardTab] = useState<BoardTab>('board');
   const [topNav,   setTopNav]   = useState<TopNav>('projects');
+  const [showMailComposer, setShowMailComposer] = useState(false);
 
   // ── Bootstrap ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -361,6 +363,13 @@ export default function App() {
         </>
       )}
 
+      {showMailComposer && (
+        <MailComposer
+          onClose={() => setShowMailComposer(false)}
+          projectId={activeProject?.id}
+        />
+      )}
+
       {newTaskForCol && activeProject && (
         <NewTaskModal
           defaultStatus={newTaskForCol} projectId={activeProject.id}
@@ -428,6 +437,12 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button onClick={() => setShowMailComposer(true)}
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+              <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
+            </button>
+          )}
           <button onClick={() => setShowFeedback(!showFeedback)}
             className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
             <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
