@@ -2,43 +2,41 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Feedback } from '../database/entities';
-import { CreateFeedbackDto } from '../common/dto';
 import { CloudinaryService } from '../common/cloudinary.service';
 
 @Injectable()
 export class FeedbackService {
   constructor(
-    @InjectRepository(Feedback)
-    private readonly repo: Repository<Feedback>,
+    @InjectRepository(Feedback) private repo: Repository<Feedback>,
     private readonly cloudinary: CloudinaryService,
   ) {}
 
-  async create(dto: CreateFeedbackDto, userId: string) {
+  async create(userId: string, dto: any) {
     let screenshotUrl: string | null = null;
-    if (dto.screenshot) {
-      screenshotUrl = await this.cloudinary.uploadImage(dto.screenshot);
+    if (dto.screenshot && dto.screenshot.length > 100) {
+      try {
+        const base64 = dto.screenshot.replace(/^data:image\/\w+;base64,/, '');
+        screenshotUrl = await this.cloudinary.uploadImage(base64, 'task-manager/feedback');
+      } catch { /* ignore */ }
     }
-    const feedback = this.repo.create({
-      user_id: userId,
-      title: dto.title,
-      description: dto.description || null,
-      category: dto.category || 'other',
+    return this.repo.save(this.repo.create({
+      user_id: userId, title: dto.title, description: dto.description ?? null,
+      category: dto.category ?? 'other', page_url: dto.page_url ?? null,
       screenshot_url: screenshotUrl,
-    });
-    return this.repo.save(feedback);
+    } as any));
   }
 
-  findAll() {
-    return this.repo.find({ order: { created_at: 'DESC' } });
+  async getAll(page = 1, limit = 20) {
+    const [data, total] = await this.repo.findAndCount({ order: { created_at: 'DESC' }, skip: (page - 1) * limit, take: limit });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async assign(id: string, assigned_to: string) {
-    await this.repo.update(id, { assigned_to });
+  async assign(id: string, assignedTo: string) {
+    await this.repo.update(id, { assigned_to: assignedTo, status: 'in_progress' } as any);
     return this.repo.findOne({ where: { id } });
   }
 
   async updateStatus(id: string, status: string) {
-    await this.repo.update(id, { status });
-    return this.repo.findOne({ where: { id } });
+    await this.repo.update(id, { status } as any);
   }
 }

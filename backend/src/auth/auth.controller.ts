@@ -1,45 +1,32 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Req, UseGuards, Body } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BwengeJwtAuthGuard } from './bwenge-jwt.guard';
-import { UserCache } from '../database/entities';
+import { BwengeJwtAuthGuard } from '../bwenge-jwt.guard';
+import { UserCache } from '../../database/entities';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    @InjectRepository(UserCache)
-    private readonly userCacheRepo: Repository<UserCache>,
-  ) {}
+  constructor(@InjectRepository(UserCache) private userCacheRepo: Repository<UserCache>) {}
 
   @Get('me')
   @UseGuards(BwengeJwtAuthGuard)
-  getMe(@Req() req: any) {
-    const { iat, exp, ...user } = req.user;
-    return user;
+  async me(@Req() req: any) {
+    const cached = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
+    return { id: req.user.sub, email: req.user.email, roles: req.user.roles, cached_profile: cached || null };
   }
 
   @Post('sync')
   @UseGuards(BwengeJwtAuthGuard)
-  async syncUser(@Req() req: any, @Body() body: { first_name: string; last_name: string; email: string; avatar_url?: string }) {
-    const cached = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
+  async sync(@Req() req: any, @Body() dto: any) {
+    let cached = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
     if (cached) {
-      cached.first_name = body.first_name;
-      cached.last_name = body.last_name;
-      cached.email = body.email;
-      cached.avatar_url = body.avatar_url || cached.avatar_url;
-      cached.last_synced = new Date();
-      await this.userCacheRepo.save(cached);
-      return cached;
+      Object.assign(cached, { ...dto, last_synced: new Date() });
+    } else {
+      cached = this.userCacheRepo.create({
+        user_id: req.user.sub, first_name: dto.first_name ?? '', last_name: dto.last_name ?? '',
+        email: dto.email ?? req.user.email ?? '', avatar_url: dto.avatar_url ?? null, last_synced: new Date(),
+      } as any);
     }
-    const entry = this.userCacheRepo.create({
-      user_id: req.user.sub,
-      first_name: body.first_name,
-      last_name: body.last_name,
-      email: body.email,
-      avatar_url: body.avatar_url || null,
-      last_synced: new Date(),
-    });
-    await this.userCacheRepo.save(entry);
-    return entry;
+    return this.userCacheRepo.save(cached);
   }
 }

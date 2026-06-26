@@ -1,33 +1,32 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../database/entities';
-import { CreateProjectDto } from '../common/dto';
+import { isProjectManager } from '../auth/bwenge-jwt.guard';
 
 @Injectable()
 export class ProjectsService {
-  constructor(
-    @InjectRepository(Project)
-    private readonly repo: Repository<Project>,
-  ) {}
+  constructor(@InjectRepository(Project) private repo: Repository<Project>) {}
 
-  findAll(ownerId: string) {
-    return this.repo.find({ where: { owner_id: ownerId }, order: { created_at: 'DESC' }, relations: ['tasks'] });
+  async getMyProjects(userId: string, roles: string[]) {
+    if (isProjectManager(roles)) return this.repo.find({ order: { updated_at: 'DESC' } });
+    return this.repo.find({ where: { owner_id: userId }, order: { updated_at: 'DESC' } });
   }
 
-  findOne(id: string, ownerId: string) {
-    return this.repo.findOne({ where: { id, owner_id: ownerId }, relations: ['tasks'] });
+  async create(userId: string, dto: any) {
+    return this.repo.save(this.repo.create({ name: dto.name, description: dto.description ?? null, owner_id: userId } as any));
   }
 
-  create(dto: CreateProjectDto, ownerId: string) {
-    const project = this.repo.create({ ...dto, owner_id: ownerId });
-    return this.repo.save(project);
+  async getOne(id: string) {
+    const p = await this.repo.findOne({ where: { id } });
+    if (!p) throw new NotFoundException('Project not found');
+    return p;
   }
 
-  async remove(id: string, ownerId: string) {
-    const project = await this.repo.findOne({ where: { id, owner_id: ownerId } });
-    if (!project) return null;
-    await this.repo.remove(project);
-    return project;
+  async delete(id: string, userId: string) {
+    const p = await this.repo.findOne({ where: { id } });
+    if (!p) throw new NotFoundException();
+    if (p.owner_id !== userId) throw new ForbiddenException();
+    await this.repo.remove(p);
   }
 }
