@@ -4,10 +4,11 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, FolderKanban, MessageSquare, Bug, Lightbulb, Sparkles, X, Send, ImagePlus,
   Loader2, Trash2, Calendar, LayoutDashboard, MessageCircle, ChevronDown,
-  Flag, Layers, User, Settings,
+  Flag, Layers,
 } from 'lucide-react';
 import { api, isAuthenticated, type Project, type Task, type UserProfile } from './services/api';
 import { TaskDetailModal } from './components/TaskDetailModal';
+import { LandingPage } from './components/LandingPage';
 
 const COLUMNS: { id: Task['status']; label: string; color: string; headerColor: string }[] = [
   { id: 'todo', label: 'To Do', color: 'bg-gray-50', headerColor: 'bg-gray-200 text-gray-700' },
@@ -27,30 +28,6 @@ const PHASE_LABELS: Record<string, string> = {
   backend: 'BE', frontend: 'FE', documentation: 'Doc', qa_testing: 'QA', data_analyst: 'Data',
 };
 
-function LoginScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
-      <div className="text-center space-y-5 p-10 bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
-        <div className="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center mx-auto">
-          <LayoutDashboard className="w-9 h-9 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Project Manager</h1>
-          <p className="text-gray-500 mt-1">Task Management & Kanban Board</p>
-        </div>
-        <p className="text-sm text-gray-400 bg-gray-50 rounded-xl px-4 py-3">
-          Log in through Bwenge Learners first, then return here.
-        </p>
-        <a
-          href="http://localhost:3000/login"
-          className="inline-block w-full py-2.5 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors"
-        >
-          Go to Bwenge Login
-        </a>
-      </div>
-    </div>
-  );
-}
 
 function FeedbackPanel({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState('');
@@ -401,7 +378,7 @@ export default function App() {
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
   );
-  if (!authed) return <LoginScreen />;
+  if (!authed) return <LandingPage />;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

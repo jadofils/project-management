@@ -4,6 +4,7 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "env": {
-    "VITE_API_URL": "https://project-manager-api.onrender.com/api"
+    "VITE_API_URL": "https://project-manager-api.onrender.com/api",
+    "VITE_BWENGE_URL": "https://bwenge.com"
   }
 }
