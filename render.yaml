@@ -5,8 +5,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd backend && npm install && npm run build
-    startCommand: cd backend && npm run start:prod
+    buildCommand: npm run build
+    startCommand: npm start
     buildFilter:
       paths:
         - backend/**/*

@@ -2,9 +2,9 @@
   "name": "project-manager",
   "private": true,
   "scripts": {
+    "build": "cd backend && npm install && npm run build",
+    "start": "cd backend && npm run start:prod",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "backend": "cd backend && npm run dev",
-    "frontend": "cd frontend && npm run dev",
     "install:all": "cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
