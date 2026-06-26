@@ -8,6 +8,6 @@ export class TasksController {
   @Get('project/:pid') getByProject(@Param('pid') pid: string) { return this.svc.getByProject(pid); }
   @Post() create(@Req() req: any, @Body() dto: any) { return this.svc.create(req.user.sub, dto); }
   @Post('reorder') reorder(@Body() body: { orders: { id: string; sort_order: number; status: string }[] }) { return this.svc.reorder(body.orders); }
-  @Patch(':id') update(@Param('id') id: string, @Body() dto: any) { return this.svc.update(id, dto); }
+  @Patch(':id') update(@Param('id') id: string, @Req() req: any, @Body() dto: any) { return this.svc.update(id, { ...dto, _actor_id: req.user.sub }); }
   @Delete(':id') delete(@Param('id') id: string) { return this.svc.delete(id); }
 }

@@ -26,6 +26,7 @@ import { MembersController } from './members/members.controller';
 import { MembersService } from './members/members.service';
 import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
+import { MailService } from './mail/mail.service';
 
 const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage];
 
@@ -66,6 +67,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     FeedbackService,
     MembersService,
     MessagesService,
+    MailService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
