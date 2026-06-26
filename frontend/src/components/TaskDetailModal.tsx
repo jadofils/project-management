@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Trash2, Send, Loader2, Calendar, Flag, Layers, MessageSquare, Check } from 'lucide-react';
+import { X, Trash2, Send, Loader2, Calendar, Flag, Layers, MessageSquare, Check, User } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, type Task, type Comment } from '../services/api';
+import { api, type Task, type Comment, type CachedUser } from '../services/api';
 
 const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const;
 const PHASES = ['backend', 'frontend', 'documentation', 'qa_testing', 'data_analyst'] as const;
@@ -37,9 +37,12 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
   const [priority, setPriority] = useState(task.priority);
   const [phase, setPhase] = useState(task.phase || '');
   const [dueDate, setDueDate] = useState(task.due_date || '');
+  const [assigneeId, setAssigneeId] = useState(task.assignee_id || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  const [users, setUsers] = useState<CachedUser[]>([]);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
@@ -50,6 +53,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
 
   useEffect(() => {
     titleRef.current?.focus();
+    api.getUsers().then(setUsers).catch(() => { /* ignore */ });
     api.getComments(task.id)
       .then(setComments)
       .catch(() => { /* ignore */ })
@@ -63,9 +67,10 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
       status !== task.status ||
       priority !== task.priority ||
       phase !== (task.phase || '') ||
-      dueDate !== (task.due_date || '');
+      dueDate !== (task.due_date || '') ||
+      assigneeId !== (task.assignee_id || '');
     setDirty(changed);
-  }, [title, description, status, priority, phase, dueDate, task]);
+  }, [title, description, status, priority, phase, dueDate, assigneeId, task]);
 
   const save = async () => {
     if (!title.trim()) return;
@@ -78,6 +83,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
         priority,
         phase: phase || undefined,
         due_date: dueDate || undefined,
+        assignee_id: assigneeId || undefined,
       });
       onUpdate(updated);
       setDirty(false);
@@ -214,6 +220,25 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
                 onChange={e => setDueDate(e.target.value)}
                 className="w-full text-sm border rounded-lg px-3 py-2 bg-white"
               />
+            </div>
+
+            {/* Assignee */}
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
+                <User className="w-3 h-3" />Assignee
+              </label>
+              <select
+                value={assigneeId}
+                onChange={e => setAssigneeId(e.target.value)}
+                className="w-full text-sm border rounded-lg px-3 py-2 bg-white"
+              >
+                <option value="">Unassigned</option>
+                {users.map(u => (
+                  <option key={u.user_id} value={u.user_id}>
+                    {u.first_name} {u.last_name} ({u.email})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

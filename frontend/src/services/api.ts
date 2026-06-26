@@ -16,9 +16,11 @@ export interface Comment { id: string; task_id: string; user_id: string; content
 export interface Issue { id: string; project_id: string; title: string; description?: string; status: string; priority: string; reported_by: string; created_at: string; }
 export interface FeedbackItem { id: string; title: string; description?: string; category: string; screenshot_url?: string; status: string; created_at: string; }
 export interface UserProfile { id: string; email: string; roles: string[]; cached_profile?: { first_name: string; last_name: string; avatar_url?: string } | null; }
+export interface CachedUser { id: string; user_id: string; first_name: string; last_name: string; email: string; avatar_url?: string | null; }
 
 export const api = {
   getMe: () => request<UserProfile>('/auth/me'),
+  getUsers: () => request<CachedUser[]>('/auth/users'),
   syncProfile: (dto: { first_name?: string; last_name?: string; email?: string; avatar_url?: string }) =>
     request<UserProfile>('/auth/sync', { method: 'POST', body: JSON.stringify(dto) }),
 

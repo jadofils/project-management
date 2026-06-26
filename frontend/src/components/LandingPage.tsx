@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 
 const BWENGE_URL = import.meta.env.VITE_BWENGE_URL || 'http://localhost:3000';
+const SELF_URL = import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
 const FEATURES = [
   {
@@ -96,7 +97,7 @@ export function LandingPage() {
           </div>
 
           <a
-            href={`${BWENGE_URL}/login`}
+            href={`${BWENGE_URL}/login?redirect_to=${encodeURIComponent(SELF_URL)}`}
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
           >
             Get started <ChevronRight className="w-3.5 h-3.5" />
@@ -130,7 +131,7 @@ export function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href={`${BWENGE_URL}/login`}
+              href={`${BWENGE_URL}/login?redirect_to=${encodeURIComponent(SELF_URL)}`}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold rounded-2xl transition-all hover:shadow-lg hover:shadow-indigo-500/30 text-base"
             >
               Start for free <ArrowRight className="w-4 h-4" />
@@ -283,7 +284,7 @@ export function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href={`${BWENGE_URL}/login`}
+              href={`${BWENGE_URL}/login?redirect_to=${encodeURIComponent(SELF_URL)}`}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-indigo-700 font-bold rounded-2xl hover:bg-indigo-50 transition-colors text-base shadow-lg"
             >
               Sign in with Bwenge <ArrowRight className="w-4 h-4" />

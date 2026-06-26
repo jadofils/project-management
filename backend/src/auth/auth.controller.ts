@@ -14,6 +14,11 @@ export class AuthController {
     return { id: req.user.sub, email: req.user.email, roles: req.user.roles, cached_profile: cached || null };
   }
 
+  @Get('users') @UseGuards(BwengeJwtAuthGuard)
+  async users() {
+    return this.userCacheRepo.find({ order: { first_name: 'ASC' } });
+  }
+
   @Post('sync') @UseGuards(BwengeJwtAuthGuard)
   async sync(@Req() req: any, @Body() dto: any) {
     const existing = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });

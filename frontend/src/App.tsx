@@ -102,6 +102,8 @@ function FeedbackPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+function assigneeInitials(id: string) { return id.slice(0, 2).toUpperCase(); }
+
 function TaskCard({
   task, index, onOpen,
 }: { task: Task; index: number; onOpen: (task: Task) => void }) {
@@ -134,6 +136,11 @@ function TaskCard({
               <span className={`text-[10px] flex items-center gap-0.5 font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
                 <Calendar className="w-3 h-3" />
                 {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+            {task.assignee_id && (
+              <span className="ml-auto w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                {assigneeInitials(task.assignee_id)}
               </span>
             )}
           </div>
@@ -272,9 +279,25 @@ export default function App() {
   const [deletingProject, setDeletingProject] = useState(false);
 
   useEffect(() => {
+    // Capture token passed back from Bwenge Learners via ?token=xxx
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      localStorage.setItem('accessToken', urlToken);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
     if (!isAuthenticated()) { setLoading(false); return; }
+
     api.getMe()
-      .then(u => { setUser(u); setAuthed(true); })
+      .then(async u => {
+        setUser(u);
+        setAuthed(true);
+        // Auto-sync profile into our UserCache if not yet cached
+        if (!u.cached_profile && u.email) {
+          try { await api.syncProfile({ email: u.email }); } catch { /* ignore */ }
+        }
+      })
       .catch(() => setAuthed(false))
       .finally(() => setLoading(false));
   }, []);
