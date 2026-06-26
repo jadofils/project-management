@@ -7,10 +7,10 @@ export type DevPhase = 'backend' | 'frontend' | 'documentation' | 'qa_testing' |
 @Entity('projects')
 export class Project {
   @PrimaryGeneratedColumn('uuid') id!: string;
-  @Column({ length: 200 }) name!: string;
+  @Column({ type: 'varchar', length: 200 }) name!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
   @Column({ type: 'uuid' }) owner_id!: string;
-  @Column({ length: 20, default: 'active' }) status!: string;
+  @Column({ type: 'varchar', length: 20, default: 'active' }) status!: string;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
   @OneToMany(() => Task, (t: Task) => t.project) tasks!: Task[];
@@ -20,11 +20,11 @@ export class Project {
 export class Task {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'uuid' }) project_id!: string;
-  @Column({ length: 300 }) title!: string;
+  @Column({ type: 'varchar', length: 300 }) title!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
-  @Column({ length: 20, default: 'todo' }) status!: string;
-  @Column({ length: 20, default: 'medium' }) priority!: string;
-  @Column({ length: 30, nullable: true }) phase!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'todo' }) status!: string;
+  @Column({ type: 'varchar', length: 20, default: 'medium' }) priority!: string;
+  @Column({ type: 'varchar', length: 30, nullable: true }) phase!: string | null;
   @Column({ type: 'uuid', nullable: true }) assignee_id!: string | null;
   @Column({ type: 'int', default: 0 }) sort_order!: number;
   @Column({ type: 'date', nullable: true }) due_date!: string | null;
@@ -47,10 +47,10 @@ export class Issue {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'uuid' }) project_id!: string;
   @Column({ type: 'uuid' }) reported_by!: string;
-  @Column({ length: 300 }) title!: string;
+  @Column({ type: 'varchar', length: 300 }) title!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
-  @Column({ length: 20, default: 'open' }) status!: string;
-  @Column({ length: 20, default: 'medium' }) priority!: string;
+  @Column({ type: 'varchar', length: 20, default: 'open' }) status!: string;
+  @Column({ type: 'varchar', length: 20, default: 'medium' }) priority!: string;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
 }
@@ -59,13 +59,13 @@ export class Issue {
 export class ErrorLog {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'int' }) status_code!: number;
-  @Column({ length: 500 }) message!: string;
+  @Column({ type: 'varchar', length: 500 }) message!: string;
   @Column({ type: 'text', nullable: true }) stack!: string | null;
-  @Column({ length: 300, nullable: true }) endpoint!: string | null;
-  @Column({ length: 10, nullable: true }) method!: string | null;
+  @Column({ type: 'varchar', length: 300, nullable: true }) endpoint!: string | null;
+  @Column({ type: 'varchar', length: 10, nullable: true }) method!: string | null;
   @Column({ type: 'uuid', nullable: true }) user_id!: string | null;
-  @Column({ length: 50, default: 'bwenge' }) source!: string;
-  @Column({ length: 20, default: 'unread' }) status!: string;
+  @Column({ type: 'varchar', length: 50, default: 'bwenge' }) source!: string;
+  @Column({ type: 'varchar', length: 20, default: 'unread' }) status!: string;
   @CreateDateColumn() created_at!: Date;
 }
 
@@ -73,23 +73,23 @@ export class ErrorLog {
 export class UserCache {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'uuid', unique: true }) user_id!: string;
-  @Column({ length: 100 }) first_name!: string;
-  @Column({ length: 100 }) last_name!: string;
-  @Column({ length: 255 }) email!: string;
-  @Column({ length: 500, nullable: true }) avatar_url!: string | null;
-  @Column() last_synced!: Date;
+  @Column({ type: 'varchar', length: 100 }) first_name!: string;
+  @Column({ type: 'varchar', length: 100 }) last_name!: string;
+  @Column({ type: 'varchar', length: 255 }) email!: string;
+  @Column({ type: 'varchar', length: 500, nullable: true }) avatar_url!: string | null;
+  @Column({ type: 'timestamp' }) last_synced!: Date;
 }
 
 @Entity('feedbacks')
 export class Feedback {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'uuid' }) user_id!: string;
-  @Column({ length: 300 }) title!: string;
+  @Column({ type: 'varchar', length: 300 }) title!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
-  @Column({ length: 30, default: 'other' }) category!: string;
-  @Column({ length: 500, nullable: true }) page_url!: string | null;
+  @Column({ type: 'varchar', length: 30, default: 'other' }) category!: string;
+  @Column({ type: 'varchar', length: 500, nullable: true }) page_url!: string | null;
   @Column({ type: 'text', nullable: true }) screenshot_url!: string | null;
-  @Column({ length: 20, default: 'open' }) status!: string;
+  @Column({ type: 'varchar', length: 20, default: 'open' }) status!: string;
   @Column({ type: 'uuid', nullable: true }) assigned_to!: string | null;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
