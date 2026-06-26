@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
-import { BwengeJwtAuthGuard } from '../auth/bwenge-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 import { TasksService } from './tasks.service';
 
-@Controller('tasks') @UseGuards(BwengeJwtAuthGuard)
+@Controller('tasks') @UseGuards(JwtAuthGuard)
 export class TasksController {
   constructor(private readonly svc: TasksService) {}
   @Get('project/:pid') getByProject(@Param('pid') pid: string) { return this.svc.getByProject(pid); }

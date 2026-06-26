@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Trash2, Send, Loader2, Calendar, Flag, Layers, MessageSquare, Check, User } from 'lucide-react';
+import { X, Trash2, Send, Loader2, Calendar, Flag, Layers, MessageSquare, Check, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { api, type Task, type Comment, type CachedUser } from '../services/api';
+import { api, type Task, type Comment, type User, userName } from '../services/api';
 
 const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const;
 const PHASES = ['backend', 'frontend', 'documentation', 'qa_testing', 'data_analyst'] as const;
@@ -42,7 +42,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const [users, setUsers] = useState<CachedUser[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
@@ -225,7 +225,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
             {/* Assignee */}
             <div className="col-span-2">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
-                <User className="w-3 h-3" />Assignee
+                <UserIcon className="w-3 h-3" />Assignee
               </label>
               <select
                 value={assigneeId}
@@ -234,9 +234,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete }: Props) {
               >
                 <option value="">Unassigned</option>
                 {users.map(u => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.first_name} {u.last_name} ({u.email})
-                  </option>
+                  <option key={u.id} value={u.id}>{userName(u)} ({u.email})</option>
                 ))}
               </select>
             </div>

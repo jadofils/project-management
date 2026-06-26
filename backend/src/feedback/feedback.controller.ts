@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { BwengeJwtAuthGuard } from '../auth/bwenge-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 import { FeedbackService } from './feedback.service';
 
-@Controller('feedback') @UseGuards(BwengeJwtAuthGuard)
+@Controller('feedback') @UseGuards(JwtAuthGuard)
 export class FeedbackController {
   constructor(private readonly svc: FeedbackService) {}
   @Post() create(@Req() req: any, @Body() dto: any) { return this.svc.create(req.user.sub, dto); }

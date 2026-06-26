@@ -1,0 +1,31 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../database/entities';
+
+const PUBLIC_COLS: (keyof User)[] = ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'system_role', 'is_active', 'created_at'];
+
+@Injectable()
+export class UsersService {
+  constructor(@InjectRepository(User) private users: Repository<User>) {}
+
+  findAll() {
+    return this.users.find({ select: PUBLIC_COLS, order: { created_at: 'ASC' } });
+  }
+
+  async findOne(id: string) {
+    const user = await this.users.findOne({ where: { id }, select: PUBLIC_COLS });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async update(id: string, dto: Partial<Pick<User, 'first_name' | 'last_name' | 'system_role' | 'is_active' | 'avatar_url'>>) {
+    await this.users.update(id, dto as any);
+    return this.findOne(id);
+  }
+
+  async deactivate(id: string) {
+    await this.users.update(id, { is_active: false });
+    return this.findOne(id);
+  }
+}

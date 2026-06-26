@@ -1,39 +1,23 @@
-import { Controller, Get, Post, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
-import { BwengeJwtAuthGuard } from './bwenge-jwt.guard';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserCache } from '../database/entities';
+import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './jwt.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(@InjectRepository(UserCache) private userCacheRepo: Repository<UserCache>) {}
+  constructor(private readonly svc: AuthService) {}
 
-  @Get('me') @UseGuards(BwengeJwtAuthGuard)
-  async me(@Req() req: any) {
-    const cached = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
-    return { id: req.user.sub, email: req.user.email, roles: req.user.roles, cached_profile: cached || null };
+  @Post('register')
+  register(@Body() dto: { email: string; password: string; first_name: string; last_name: string }) {
+    return this.svc.register(dto);
   }
 
-  @Get('users') @UseGuards(BwengeJwtAuthGuard)
-  async users() {
-    return this.userCacheRepo.find({ order: { first_name: 'ASC' } });
+  @Post('login')
+  login(@Body() dto: { email: string; password: string }) {
+    return this.svc.login(dto);
   }
 
-  @Post('sync') @UseGuards(BwengeJwtAuthGuard)
-  async sync(@Req() req: any, @Body() dto: any) {
-    const existing = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
-    if (existing) {
-      Object.assign(existing, { ...dto, last_synced: new Date() });
-      return this.userCacheRepo.save(existing);
-    }
-    const created = this.userCacheRepo.create({
-      user_id: req.user.sub,
-      first_name: dto.first_name ?? '',
-      last_name: dto.last_name ?? '',
-      email: dto.email ?? req.user.email ?? '',
-      avatar_url: dto.avatar_url ?? null,
-      last_synced: new Date(),
-    } as any);
-    return this.userCacheRepo.save(created);
+  @Get('me') @UseGuards(JwtAuthGuard)
+  me(@Req() req: any) {
+    return this.svc.me(req.user.sub);
   }
 }

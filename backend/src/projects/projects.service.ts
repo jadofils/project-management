@@ -2,14 +2,13 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../database/entities';
-import { isProjectManager } from '../auth/bwenge-jwt.guard';
 
 @Injectable()
 export class ProjectsService {
   constructor(@InjectRepository(Project) private repo: Repository<Project>) {}
 
-  async getMyProjects(userId: string, roles: string[]) {
-    if (isProjectManager(roles)) return this.repo.find({ order: { updated_at: 'DESC' } });
+  async getMyProjects(userId: string, systemRole: string) {
+    if (systemRole === 'admin') return this.repo.find({ order: { updated_at: 'DESC' } });
     return this.repo.find({ where: { owner_id: userId }, order: { updated_at: 'DESC' } });
   }
 
@@ -23,10 +22,10 @@ export class ProjectsService {
     return p;
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string, userId: string, systemRole: string) {
     const p = await this.repo.findOne({ where: { id } });
     if (!p) throw new NotFoundException();
-    if (p.owner_id !== userId) throw new ForbiddenException();
+    if (p.owner_id !== userId && systemRole !== 'admin') throw new ForbiddenException();
     await this.repo.remove(p);
   }
 }

@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
-import { BwengeJwtAuthGuard } from '../auth/bwenge-jwt.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CommentsService } from './comments.service';
 
-@Controller('tasks') @UseGuards(BwengeJwtAuthGuard)
+@Controller('tasks') @UseGuards(JwtAuthGuard)
 export class CommentsController {
   constructor(private readonly svc: CommentsService) {}
 

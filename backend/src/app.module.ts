@@ -2,11 +2,14 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, UserCache, Feedback } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
 import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
+import { UsersController } from './users/users.controller';
+import { UsersService } from './users/users.service';
 import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { TasksController } from './tasks/tasks.controller';
@@ -19,19 +22,52 @@ import { ErrorsController } from './errors/errors.controller';
 import { ErrorsService } from './errors/errors.service';
 import { FeedbackController } from './feedback/feedback.controller';
 import { FeedbackService } from './feedback/feedback.service';
+import { MembersController } from './members/members.controller';
+import { MembersService } from './members/members.service';
+import { MessagesController } from './messages/messages.controller';
+import { MessagesService } from './messages/messages.service';
+
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage];
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
-      type: 'postgres', url: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false },
-      entities: [Project, Task, Comment, Issue, ErrorLog, UserCache, Feedback],
-      synchronize: true, logging: false,
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      entities: ENTITIES,
+      synchronize: true,
+      logging: false,
     }),
-    TypeOrmModule.forFeature([Project, Task, Comment, Issue, ErrorLog, UserCache, Feedback]),
+    TypeOrmModule.forFeature(ENTITIES),
   ],
-  controllers: [AuthController, ProjectsController, TasksController, CommentsController, IssuesController, ErrorsController, FeedbackController],
-  providers: [CloudinaryService, ProjectsService, TasksService, CommentsService, IssuesService, ErrorsService, FeedbackService, { provide: APP_FILTER, useClass: GlobalExceptionFilter }],
+  controllers: [
+    AuthController,
+    UsersController,
+    ProjectsController,
+    TasksController,
+    CommentsController,
+    IssuesController,
+    ErrorsController,
+    FeedbackController,
+    MembersController,
+    MessagesController,
+  ],
+  providers: [
+    AuthService,
+    UsersService,
+    CloudinaryService,
+    ProjectsService,
+    TasksService,
+    CommentsService,
+    IssuesService,
+    ErrorsService,
+    FeedbackService,
+    MembersService,
+    MessagesService,
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) { consumer.apply(EncryptionMiddleware).forRoutes('*'); }
