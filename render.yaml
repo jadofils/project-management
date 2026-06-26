@@ -1,37 +1,15 @@
-# ════════════════════════════════════════════════════════════════════════════
-# Render Blueprint — Project Manager (Task Management System)
-# Docs: https://render.com/docs/blueprint-spec
-#
-# This is a STANDALONE service — separate from Bwenge Learners.
-# It uses its own Neon PostgreSQL database (configured via DATABASE_URL).
-# Authentication is delegated to Bwenge Learners via shared JWT_SECRET.
-#
-# Auto-deploy: every push to `main` triggers a deploy.
-# Build filter: only rebuilds when `project-manager/backend/` changes.
-#
-# Required secrets (Render dashboard → Environment):
-#   DATABASE_URL          — Neon PostgreSQL connection string
-#   JWT_SECRET            — Must match Bwenge Learners' JWT_SECRET
-#   CLOUDINARY_CLOUD_NAME — Same as Bwenge Learners
-#   CLOUDINARY_API_KEY    — Same as Bwenge Learners
-#   CLOUDINARY_API_SECRET — Same as Bwenge Learners
-#   INTER_SYSTEM_ENCRYPTION_KEY — AES-256 key for inter-system communication
-# ════════════════════════════════════════════════════════════════════════════
-
+# Render Blueprint — Project Manager
 services:
-
-  # ── Project Manager Backend (NestJS API) ─────────────────────────────────
   - type: web
     name: project-manager-api
     runtime: node
     region: oregon
     plan: free
-    rootDir: project-manager/backend
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:prod
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm run start:prod
     buildFilter:
       paths:
-        - project-manager/backend/**/*
+        - backend/**/*
     envVars:
       - key: NODE_ENV
         value: production
