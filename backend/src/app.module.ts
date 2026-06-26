@@ -29,6 +29,8 @@ import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
 import { MailService } from './mail/mail.service';
 import { MailController } from './mail/mail.controller';
+import { HealthController } from './health/health.controller';
+import { KeepAliveService } from './keep-alive/keep-alive.service';
 
 const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage];
 
@@ -57,6 +59,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     MembersController,
     MessagesController,
     MailController,
+    HealthController,
   ],
   providers: [
     AuthService,
@@ -72,6 +75,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     MessagesService,
     MailService,
     AdminOrPMGuard,
+    KeepAliveService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

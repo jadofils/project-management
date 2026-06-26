@@ -140,6 +140,24 @@ export function isAuthenticated() { return !!localStorage.getItem('accessToken')
 export function logout() { localStorage.removeItem('accessToken'); }
 export function saveToken(t: string) { localStorage.setItem('accessToken', t); }
 
+// Ping the backend health endpoint every 5 s until it responds, then stop.
+// Runs on app load so the server is awake by the time the user clicks Sign In.
+export function wakeUpServer(onAwake?: () => void): () => void {
+  let stopped = false;
+
+  const ping = async () => {
+    if (stopped) return;
+    try {
+      const res = await fetch(`${API}/health`, { signal: AbortSignal.timeout(8_000) });
+      if (res.ok) { onAwake?.(); return; }
+    } catch { /* server still sleeping */ }
+    if (!stopped) setTimeout(ping, 5_000);
+  };
+
+  ping();
+  return () => { stopped = true; };
+}
+
 export function userInitials(u: User) {
   return `${u.first_name[0] || ''}${u.last_name[0] || ''}`.toUpperCase();
 }

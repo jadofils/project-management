@@ -6,7 +6,7 @@ import {
   Loader2, Trash2, Calendar, LayoutDashboard, MessageCircle, ChevronDown,
   Flag, Layers, Users, LogOut, UserCog, Mail,
 } from 'lucide-react';
-import { api, isAuthenticated, logout, saveToken, userInitials, userName, type Project, type Task, type User } from './services/api';
+import { api, isAuthenticated, logout, saveToken, wakeUpServer, userInitials, userName, type Project, type Task, type User } from './services/api';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { AuthPage } from './components/AuthPage';
 import { MembersPanel } from './components/MembersPanel';
@@ -248,11 +248,16 @@ export default function App() {
 
   // ── Bootstrap ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isAuthenticated()) { setLoading(false); return; }
+    // Start pinging backend immediately so it's awake by the time user logs in
+    const stopPing = wakeUpServer();
+
+    if (!isAuthenticated()) { setLoading(false); return stopPing; }
     api.getMe()
       .then(u => { setUser(u); setAuthed(true); })
       .catch(() => { logout(); setAuthed(false); })
       .finally(() => setLoading(false));
+
+    return stopPing;
   }, []);
 
   const handleAuth = (u: User) => { setUser(u); setAuthed(true); };
