@@ -13,7 +13,7 @@ export class Project {
   @Column({ length: 20, default: 'active' }) status!: string;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
-  @OneToMany(() => Task, t => t.project) tasks!: Task[];
+  @OneToMany(() => Task, (t: Task) => t.project) tasks!: Task[];
 }
 
 @Entity('tasks')

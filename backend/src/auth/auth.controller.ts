@@ -16,9 +16,19 @@ export class AuthController {
 
   @Post('sync') @UseGuards(BwengeJwtAuthGuard)
   async sync(@Req() req: any, @Body() dto: any) {
-    let cached = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
-    if (cached) { Object.assign(cached, { ...dto, last_synced: new Date() }); }
-    else { cached = this.userCacheRepo.create({ user_id: req.user.sub, first_name: dto.first_name ?? '', last_name: dto.last_name ?? '', email: dto.email ?? req.user.email ?? '', avatar_url: dto.avatar_url ?? null, last_synced: new Date() } as any); }
-    return this.userCacheRepo.save(cached);
+    const existing = await this.userCacheRepo.findOne({ where: { user_id: req.user.sub } });
+    if (existing) {
+      Object.assign(existing, { ...dto, last_synced: new Date() });
+      return this.userCacheRepo.save(existing);
+    }
+    const created = this.userCacheRepo.create({
+      user_id: req.user.sub,
+      first_name: dto.first_name ?? '',
+      last_name: dto.last_name ?? '',
+      email: dto.email ?? req.user.email ?? '',
+      avatar_url: dto.avatar_url ?? null,
+      last_synced: new Date(),
+    } as any);
+    return this.userCacheRepo.save(created);
   }
 }

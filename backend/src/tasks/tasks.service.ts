@@ -23,5 +23,11 @@ export class TasksService {
     return this.repo.save(task);
   }
 
+  async reorder(orders: { id: string; sort_order: number; status: string }[]) {
+    await Promise.all(
+      orders.map(({ id, sort_order, status }) => this.repo.update(id, { sort_order, status } as any))
+    );
+  }
+
   async delete(id: string) { await this.repo.delete(id); }
 }

@@ -11,6 +11,8 @@ import { ProjectsController } from './projects/projects.controller';
 import { ProjectsService } from './projects/projects.service';
 import { TasksController } from './tasks/tasks.controller';
 import { TasksService } from './tasks/tasks.service';
+import { CommentsController } from './comments/comments.controller';
+import { CommentsService } from './comments/comments.service';
 import { IssuesController } from './issues/issues.controller';
 import { IssuesService } from './issues/issues.service';
 import { ErrorsController } from './errors/errors.controller';
@@ -28,8 +30,8 @@ import { FeedbackService } from './feedback/feedback.service';
     }),
     TypeOrmModule.forFeature([Project, Task, Comment, Issue, ErrorLog, UserCache, Feedback]),
   ],
-  controllers: [AuthController, ProjectsController, TasksController, IssuesController, ErrorsController, FeedbackController],
-  providers: [CloudinaryService, ProjectsService, TasksService, IssuesService, ErrorsService, FeedbackService, { provide: APP_FILTER, useClass: GlobalExceptionFilter }],
+  controllers: [AuthController, ProjectsController, TasksController, CommentsController, IssuesController, ErrorsController, FeedbackController],
+  providers: [CloudinaryService, ProjectsService, TasksService, CommentsService, IssuesService, ErrorsService, FeedbackService, { provide: APP_FILTER, useClass: GlobalExceptionFilter }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) { consumer.apply(EncryptionMiddleware).forRoutes('*'); }
