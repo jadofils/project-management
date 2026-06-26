@@ -83,9 +83,16 @@ export function AuthPage({ onAuth }: Props) {
               type="submit" disabled={loading}
               className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors mt-2"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Sign In
+              {loading
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Signing in…</>
+                : 'Sign In'}
             </button>
+
+            {loading && (
+              <p className="text-center text-xs text-gray-400 animate-pulse">
+                Server may be waking up — this can take up to 20 seconds on first load.
+              </p>
+            )}
           </form>
 
           <div className="px-6 pb-5 text-center">

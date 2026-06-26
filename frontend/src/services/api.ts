@@ -4,14 +4,31 @@ function token() { return localStorage.getItem('accessToken') || ''; }
 function authHeaders() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }; }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}${path}`, { ...options, headers: { ...authHeaders(), ...(options.headers as Record<string,string> || {}) } });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
-    throw new Error(err.message || `HTTP ${res.status}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+
+  try {
+    const res = await fetch(`${API}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    if (res.status === 204) return undefined as T;
+    const text = await res.text();
+    return text ? JSON.parse(text) : (undefined as T);
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      throw new Error('Server is waking up — please try again in a few seconds.');
+    }
+    throw err;
   }
-  if (res.status === 204) return undefined as T;
-  const text = await res.text();
-  return text ? JSON.parse(text) : undefined as T;
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
