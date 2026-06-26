@@ -1,0 +1,7 @@
+import { IsString, IsOptional, IsEnum, IsUUID, IsInt, Min, Max } from 'class-validator';
+export class CreateProjectDto { @IsString() name!: string; @IsOptional() @IsString() description?: string; }
+export class CreateTaskDto { @IsUUID() project_id!: string; @IsString() title!: string; @IsOptional() @IsString() description?: string; @IsOptional() @IsEnum(['low','medium','high','critical']) priority?: string; @IsOptional() @IsEnum(['backend','frontend','documentation','qa_testing','data_analyst']) phase?: string; @IsOptional() @IsUUID() assignee_id?: string; @IsOptional() @IsString() due_date?: string; }
+export class UpdateTaskDto { @IsOptional() @IsString() title?: string; @IsOptional() @IsEnum(['todo','in_progress','review','done']) status?: string; @IsOptional() @IsEnum(['low','medium','high','critical']) priority?: string; @IsOptional() @IsEnum(['backend','frontend','documentation','qa_testing','data_analyst']) phase?: string; @IsOptional() @IsUUID() assignee_id?: string; @IsOptional() @IsInt() sort_order?: number; }
+export class CreateIssueDto { @IsUUID() project_id!: string; @IsString() title!: string; @IsOptional() @IsString() description?: string; }
+export class CreateFeedbackDto { @IsString() title!: string; @IsOptional() @IsString() description?: string; @IsOptional() @IsEnum(['bug','feature','improvement','other']) category?: string; @IsOptional() @IsString() screenshot?: string; }
+export class LogErrorDto { @IsInt() @Min(300) @Max(599) status_code!: number; @IsString() message!: string; }

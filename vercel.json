@@ -1,0 +1,22 @@
+{
+  "name": "project-manager",
+  "version": 2,
+  "builds": [
+    {
+      "src": "project-manager/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/project-manager/frontend/$1" }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "VITE_API_URL": "https://project-manager-api.onrender.com/api"
+  }
+}
