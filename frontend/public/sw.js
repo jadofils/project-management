@@ -6,6 +6,8 @@ self.addEventListener('install', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
+  // Don't cache API calls — pass through to network
+  if (e.request.url.includes('/api/')) return;
   e.respondWith(caches.match(e.request).then(function(r) { return r || fetch(e.request); }));
 });
 
