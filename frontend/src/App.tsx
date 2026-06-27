@@ -389,7 +389,7 @@ export default function App() {
                       onChange={e => { const p = projects.find(pp => pp.id === e.target.value); if (p) selectProject(p); }}
                     >
                       <option value="">Select a project…</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.type === 'company' ? ' [Company]' : ''}{p.division_name ? ` — ${p.division_name}` : ''}</option>)}
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.type === 'company' ? ' [Company]' : ' [Personal]'}{p.division_name ? ` — ${p.division_name}` : ''}</option>)}
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
                   </div>

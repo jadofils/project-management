@@ -14,23 +14,22 @@ export class ProjectsService {
   ) {}
 
   async getMyProjects(userId: string, systemRole: string) {
-    const projects = systemRole === 'admin'
-      ? await this.repo.find({ order: { updated_at: 'DESC' } })
-      : (() => {
-          const memberships = this.members.find({ where: { user_id: userId }, select: ['project_id'] });
-          return this.repo.find({ order: { updated_at: 'DESC' } }).then(ps => {
-            return memberships.then(ms => {
-              const ids = ms.map(m => m.project_id);
-              return ps.filter(p => p.owner_id === userId || ids.includes(p.id));
-            });
-          });
-        })();
+    let projects: Project[];
+    if (systemRole === 'admin') {
+      projects = await this.repo.find({ order: { updated_at: 'DESC' } });
+    } else {
+      const [ps, ms] = await Promise.all([
+        this.repo.find({ order: { updated_at: 'DESC' } }),
+        this.members.find({ where: { user_id: userId }, select: ['project_id'] }),
+      ]);
+      const memberIds = ms.map(m => m.project_id);
+      projects = ps.filter(p => p.owner_id === userId || memberIds.includes(p.id));
+    }
 
-    // Attach division names
-    const divIds = [...new Set((await projects).map(p => p.division_id).filter(Boolean))] as string[];
+    const divIds = [...new Set(projects.map(p => p.division_id).filter(Boolean))] as string[];
     const divisions = divIds.length ? await this.divisions.find({ where: { id: In(divIds) }, select: ['id', 'name'] }) : [];
     const divMap = Object.fromEntries(divisions.map(d => [d.id, d]));
-    return (await projects).map(p => ({ ...p, division_name: p.division_id ? divMap[p.division_id]?.name || null : null }));
+    return projects.map(p => ({ ...p, division_name: p.division_id ? divMap[p.division_id]?.name || null : null, type: p.type || 'individual' }));
   }
 
   async create(userId: string, dto: any) {
