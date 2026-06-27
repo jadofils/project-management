@@ -286,8 +286,10 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 gap-4">
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      <p className="text-sm text-gray-400">Connecting to server...</p>
+      <p className="text-xs text-gray-300">Free tier may take up to 60s on first visit</p>
     </div>
   );
 

@@ -18,7 +18,7 @@ const HTTP_STATUS_MESSAGES: Record<number, string> = {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20_000);
+  const timer = setTimeout(() => controller.abort(), 60_000);
 
   try {
     const res = await fetch(`${API}${path}`, {
@@ -49,7 +49,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   } catch (err: any) {
     clearTimeout(timer);
     if (err.name === 'AbortError') {
-      throw new Error('Request timed out — server may be waking up, please try again in a few seconds.');
+      throw new Error('Server is waking up from sleep mode — please wait a moment and try again.');
     }
     // Network failure (offline, DNS, etc.)
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
@@ -464,23 +464,25 @@ export function isAuthenticated() { return !!localStorage.getItem('accessToken')
 export function logout() { localStorage.removeItem('accessToken'); }
 export function saveToken(t: string) { localStorage.setItem('accessToken', t); }
 
-// Ping the backend health endpoint every 5 s until it responds, then stop.
-// Runs on app load so the server is awake by the time the user clicks Sign In.
+// Ping the backend health endpoint until it responds, then stop.
+// On Render free tier, server sleeps after inactivity and takes 30-60s to wake.
 export function wakeUpServer(onAwake?: () => void): () => void {
   let stopped = false;
+  let attempts = 0;
 
   const ping = async () => {
     if (stopped) return;
     try {
-      const res = await fetch(`${API}/health`, { signal: AbortSignal.timeout(8_000) });
+      const res = await fetch(`${API}/health`, { signal: AbortSignal.timeout(30_000) });
       if (res.ok) { onAwake?.(); return; }
     } catch { /* server still sleeping */ }
-    if (!stopped) setTimeout(ping, 5_000);
+    attempts++;
+    if (!stopped) setTimeout(ping, attempts < 5 ? 3_000 : 8_000); // Fast retry first 5, then slower
   };
 
   ping();
   return () => { stopped = true; };
-}
+};
 
 export function userInitials(u: User) {
   return `${u.first_name[0] || ''}${u.last_name[0] || ''}`.toUpperCase();
