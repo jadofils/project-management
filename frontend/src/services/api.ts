@@ -115,6 +115,8 @@ export interface AdminStats {
   totalProjects: number;
   activeProjects: number;
   disabledProjects: number;
+  companyProjects: number;
+  individualProjects: number;
   totalUsers: number;
   activeUsers: number;
   totalTasks: number;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   FolderKanban, CheckSquare, TrendingUp,
   ToggleLeft, ToggleRight, Loader2, RefreshCw, UserCheck, UserX,
-  Activity, BarChart3, ShieldCheck, Users, Clock,
+  Activity, BarChart3, ShieldCheck, Users, Clock, Building2, Briefcase,
 } from 'lucide-react';
 import { api, type AdminStats, type User, userName } from '../services/api';
 import { toast } from 'sonner';
@@ -105,9 +105,15 @@ export function AdminDashboard({ currentUser }: { currentUser: User }) {
         <StatCard icon={FolderKanban}  label="Total Projects" value={stats.totalProjects}
           sub={`${stats.activeProjects} active · ${stats.disabledProjects} disabled`}
           color="bg-indigo-500" />
+        <StatCard icon={Building2}     label="Company Projects" value={stats.companyProjects || 0}
+          sub="Linked to divisions"
+          color="bg-purple-500" />
+        <StatCard icon={UserCheck}     label="Personal Projects" value={stats.individualProjects || 0}
+          sub="Individual workspace"
+          color="bg-blue-500" />
         <StatCard icon={Users}         label="Registered Users" value={stats.totalUsers}
           sub={`${stats.activeUsers} active`}
-          color="bg-blue-500" />
+          color="bg-cyan-500" />
         <StatCard icon={CheckSquare}   label="Total Tasks" value={stats.totalTasks}
           sub={`${openCount} open · ${doneCount} done`}
           color="bg-green-500" />

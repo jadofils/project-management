@@ -69,12 +69,14 @@ export class ProjectsService {
   }
 
   async getAdminStats() {
-    const [totalProjects, totalUsers, totalTasks, activeProjects, disabledProjects] = await Promise.all([
+    const [totalProjects, totalUsers, totalTasks, activeProjects, disabledProjects, companyProjects, individualProjects] = await Promise.all([
       this.repo.count(),
       this.users.count(),
       this.tasks.count(),
       this.repo.count({ where: { status: 'active' } }),
       this.repo.count({ where: { status: 'disabled' } }),
+      this.repo.count({ where: { type: 'company' } }),
+      this.repo.count({ where: { type: 'individual' } }),
     ]);
 
     const tasksByStatus = await this.tasks
@@ -108,6 +110,8 @@ export class ProjectsService {
       totalProjects,
       activeProjects,
       disabledProjects,
+      companyProjects,
+      individualProjects,
       totalUsers,
       activeUsers: allUsers.filter(u => u.is_active).length,
       totalTasks,

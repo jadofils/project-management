@@ -397,7 +397,14 @@ export default function App() {
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
                   </div>
-                  <select value={projectFilter} onChange={e => setProjectFilter(e.target.value as any)}
+                  <select value={projectFilter} onChange={e => {
+                    const val = e.target.value as any;
+                    setProjectFilter(val);
+                    const filtered = projects.filter(p => val === 'all' || (val === 'company' ? p.type === 'company' : p.type !== 'company'));
+                    if (filtered.length > 0 && (!activeProject || !filtered.some(p => p.id === activeProject.id))) {
+                      selectProject(filtered[0]);
+                    }
+                  }}
                     className="text-xs border rounded-lg px-2 py-1.5 bg-white text-gray-500 cursor-pointer">
                     <option value="all">All</option>
                     <option value="company">Company</option>

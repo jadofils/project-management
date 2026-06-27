@@ -46,7 +46,7 @@ export const TaskCard = React.memo(function TaskCard({
   })();
 
   const rejectAction = task.status === 'review' && canConfirm
-    ? { label: 'Rework', status: 'rework', cls: 'text-red-500 hover:bg-red-50' }
+    ? { label: 'Send Back', status: 'in_progress', cls: 'text-amber-600 hover:bg-amber-50' }
     : null;
 
   return (
