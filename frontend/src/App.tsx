@@ -27,6 +27,7 @@ import { AttendancePanel } from './components/AttendancePanel';
 import { OrgChartPanel } from './components/OrgChartPanel';
 import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
+import { RecruitmentPanel } from './components/RecruitmentPanel';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
 type BoardTab = 'board' | 'members' | 'chat' | 'stats' | 'feedback';
@@ -125,6 +126,8 @@ export default function App() {
       setTopNav('leave' as any);
     } else if (section === 'attendance-report' || section === 'leave-report' || section === 'headcount') {
       setTopNav('reports' as any);
+    } else if (section === 'postings' || section === 'applications') {
+      setTopNav('recruitment' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
       setTopNav('projects');
       setBoardTab(section as BoardTab);
@@ -452,6 +455,10 @@ export default function App() {
       ) : topNav === ('reports' as any) ? (
         <div className="flex-1 overflow-auto">
           <ReportsPanel />
+        </div>
+      ) : topNav === ('recruitment' as any) ? (
+        <div className="flex-1 overflow-auto">
+          <RecruitmentPanel />
         </div>
       ) : (
         <div className="flex-1 overflow-auto flex flex-col">

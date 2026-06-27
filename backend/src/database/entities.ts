@@ -350,3 +350,31 @@ export class LeaveBalance {
   @Column({ type: 'int', default: 0 }) remaining!: number;
   @CreateDateColumn() created_at!: Date;
 }
+
+// ── Recruitment ────────────────────────────────────────────────────────────────
+@Entity('job_postings')
+export class JobPosting {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 200 }) title!: string;
+  @Column({ type: 'uuid', nullable: true }) division_id!: string | null;
+  @Column({ type: 'text', nullable: true }) description!: string | null;
+  @Column({ type: 'text', nullable: true }) requirements!: string | null;
+  @Column({ type: 'date', nullable: true }) deadline!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'open' }) status!: string;
+  @Column({ type: 'uuid' }) created_by!: string;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('applications')
+export class Application {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) posting_id!: string;
+  @Column({ type: 'varchar', length: 200 }) applicant_name!: string;
+  @Column({ type: 'varchar', length: 255 }) email!: string;
+  @Column({ type: 'varchar', length: 30, nullable: true }) phone!: string | null;
+  @Column({ type: 'varchar', length: 500, nullable: true }) cv_url!: string | null;
+  @Column({ type: 'text', nullable: true }) cover_letter!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'new' }) status!: string;
+  @Column({ type: 'text', nullable: true }) notes!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}

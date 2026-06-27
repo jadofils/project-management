@@ -447,6 +447,21 @@ export const api = {
   approveLeaveRequest: (id: string) => request<any>(`/leave/requests/${id}/approve`, { method: 'PATCH' }),
   rejectLeaveRequest: (id: string, reason?: string) =>
     request<any>(`/leave/requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+
+  // Recruitment
+  getJobPostings: (status?: string) => request<any[]>(`/recruitment/postings${status ? `?status=${status}` : ''}`),
+  createJobPosting: (dto: any) => request<any>('/recruitment/postings', { method: 'POST', body: JSON.stringify(dto) }),
+  updateJobPosting: (id: string, dto: any) => request<any>(`/recruitment/postings/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteJobPosting: (id: string) => request<any>(`/recruitment/postings/${id}`, { method: 'DELETE' }),
+  getApplications: (postingId?: string, status?: string) => {
+    const qs = new URLSearchParams();
+    if (postingId) qs.set('posting_id', postingId);
+    if (status) qs.set('status', status);
+    return request<any[]>(`/recruitment/applications?${qs.toString()}`);
+  },
+  createApplication: (dto: any) => request<any>('/recruitment/applications', { method: 'POST', body: JSON.stringify(dto) }),
+  updateApplication: (id: string, dto: any) => request<any>(`/recruitment/applications/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteApplication: (id: string) => request<any>(`/recruitment/applications/${id}`, { method: 'DELETE' }),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }

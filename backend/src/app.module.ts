@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
@@ -51,8 +51,10 @@ import { LeaveController } from './leave/leave.controller';
 import { LeaveService } from './leave/leave.service';
 import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
+import { RecruitmentController } from './recruitment/recruitment.controller';
+import { RecruitmentService } from './recruitment/recruitment.service';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application];
 
 @Module({
   imports: [
@@ -94,6 +96,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     AttendanceController,
     LeaveController,
     ReportsController,
+    RecruitmentController,
   ],
   providers: [
     AuthService,
@@ -120,6 +123,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     AttendanceService,
     LeaveService,
     ReportsService,
+    RecruitmentService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

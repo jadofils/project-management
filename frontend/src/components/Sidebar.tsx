@@ -1,4 +1,4 @@
-import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail } from 'lucide-react';
+import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -68,6 +68,15 @@ const NAV_ITEMS: NavItem[] = [
       { id: 'attendance-report', label: 'Attendance' },
       { id: 'leave-report', label: 'Leave Summary' },
       { id: 'headcount', label: 'Headcount' },
+    ],
+  },
+  {
+    id: 'recruitment',
+    label: 'Recruitment',
+    icon: Briefcase,
+    children: [
+      { id: 'postings', label: 'Job Postings' },
+      { id: 'applications', label: 'Applications' },
     ],
   },
   {
