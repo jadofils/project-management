@@ -22,6 +22,7 @@ import { FeedbackPage } from './components/FeedbackPage';
 import { TaskCard } from './components/TaskCard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { ColumnView } from './components/ColumnView';
 import { Sidebar } from './components/Sidebar';
 import { AttendancePanel } from './components/AttendancePanel';
 import { OrgChartPanel } from './components/OrgChartPanel';
@@ -539,85 +540,24 @@ export default function App() {
                       {COLUMNS.map(col => {
                         const colTasks = tasks.filter(t => t.status === col.id).sort((a, b) => a.sort_order - b.sort_order);
                         const isMember = !!currentMember || user?.system_role === 'admin';
-
-                        // Group tasks by module
-                        const grouped = colTasks.reduce((acc, task) => {
-                          const key = task.module || '__ungrouped__';
-                          if (!acc[key]) acc[key] = [];
-                          acc[key].push(task);
-                          return acc;
-                        }, {} as Record<string, Task[]>);
-
-                        const moduleKeys = Object.keys(grouped);
-
                         return (
-                          <div key={col.id} className={`${col.color} rounded-2xl flex flex-col overflow-hidden`}>
-                            <div className="px-3 py-2.5 flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.headerColor}`}>{col.label}</span>
-                                <span className="text-xs text-gray-400 font-medium">{colTasks.length}</span>
-                              </div>
-                              {col.id === 'todo' && projectPerms.canCreateTask && (
-                                <button onClick={() => setNewTaskForCol(col.id)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-white/70">
-                                  <Plus className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                            <Droppable droppableId={col.id}>
-                              {(provided, snapshot) => (
-                                <div ref={provided.innerRef} {...provided.droppableProps}
-                                  className={`flex-1 px-3 pb-3 space-y-3 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/60' : ''}`}>
-                                  {moduleKeys.map(moduleKey => {
-                                    const moduleTasks = grouped[moduleKey];
-                                    const isModule = moduleKey !== '__ungrouped__';
-                                    return (
-                                      <div key={moduleKey}>
-                                        {isModule && (
-                                          <div className="flex items-center gap-2 mb-1.5 ml-1">
-                                            <span className="w-2 h-2 rounded-full bg-indigo-300" />
-                                            <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider truncate">{moduleKey}</span>
-                                            <span className="text-[9px] text-gray-400">{moduleTasks.length}</span>
-                                          </div>
-                                        )}
-                                        <div className="space-y-2">
-                                          {moduleTasks.map((task, i) => (
-                                            <TaskCard
-                                              key={task.id} task={task} index={i}
-                                              onOpen={setSelectedTask} userMap={userMap}
-                                              isDragDisabled={!projectPerms.canDrag}
-                                              currentUserId={user?.id}
-                                              isMember={isMember}
-                                              canConfirm={projectPerms.isManager}
-                                              canEditTask={projectPerms.canEditTask}
-                                              onLike={handleLike}
-                                              onQuickStatus={handleQuickStatus}
-                                              onAskHelp={(task) => {
-                                                setHelpTask({ taskId: task.id, taskTitle: task.title });
-                                                setBoardTab('chat');
-                                              }}
-                                            />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                  {provided.placeholder}
-                                  {colTasks.length === 0 && !snapshot.isDraggingOver && (
-                                    <div className="text-center py-6 text-xs text-gray-300">
-                                      <FolderKanban className="w-6 h-6 mx-auto mb-1 opacity-50" />Drop tasks here
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </Droppable>
-                            {col.id === 'todo' && projectPerms.canCreateTask && (
-                              <button onClick={() => setNewTaskForCol(col.id)}
-                                className="mx-3 mb-3 py-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-white/70 rounded-xl flex items-center justify-center gap-1">
-                                <Plus className="w-3.5 h-3.5" />Add module tasks
-                              </button>
-                            )}
-                          </div>
+                          <ColumnView
+                            key={col.id}
+                            col={col}
+                            tasks={colTasks}
+                            isMember={isMember}
+                            userMap={userMap}
+                            currentUserId={user?.id}
+                            canCreateTask={projectPerms.canCreateTask}
+                            canDrag={projectPerms.canDrag}
+                            canEditTask={projectPerms.canEditTask}
+                            isManager={projectPerms.isManager}
+                            onOpen={setSelectedTask}
+                            onLike={handleLike}
+                            onQuickStatus={handleQuickStatus}
+                            onAskHelp={(task) => { setHelpTask({ taskId: task.id, taskTitle: task.title }); setBoardTab('chat'); }}
+                            onAddTask={() => setNewTaskForCol(col.id)}
+                          />
                         );
                       })}
                     </div>
