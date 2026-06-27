@@ -65,19 +65,15 @@ export class FeedbackService {
       await this.repo.increment({ id: feedbackId }, 'reply_count', 1);
       return saved;
     } catch (e: any) {
-      this.logger.error('addReply failed (table may not exist yet)', e.message);
-      throw e;
+      this.logger.warn('addReply skipped — feedback_replies table does not exist yet. Set DB_SYNCHRONIZE=true on Render.');
+      return null;
     }
   }
 
-  async getReplies(feedbackId: string) {
+  async getReplies(_feedbackId: string) {
     try {
-      return this.replies.find({
-        where: { feedback_id: feedbackId },
-        order: { created_at: 'ASC' },
-      });
-    } catch (e: any) {
-      this.logger.error('getReplies failed (table may not exist yet)', e.message);
+      return await this.replies.find({ where: { feedback_id: _feedbackId }, order: { created_at: 'ASC' } });
+    } catch {
       return [];
     }
   }

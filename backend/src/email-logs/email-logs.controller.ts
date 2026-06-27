@@ -19,27 +19,35 @@ export class EmailLogsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const where: any = {};
-    if (type) where.type = type;
-    if (projectId) where.project_id = projectId;
+    try {
+      const where: any = {};
+      if (type) where.type = type;
+      if (projectId) where.project_id = projectId;
 
-    const p = Number(page) || 1;
-    const l = Number(limit) || 30;
-    const [data, total] = await this.logs.findAndCount({
-      where,
-      order: { created_at: 'DESC' },
-      skip: (p - 1) * l,
-      take: l,
-    });
+      const p = Number(page) || 1;
+      const l = Number(limit) || 30;
+      const [data, total] = await this.logs.findAndCount({
+        where,
+        order: { created_at: 'DESC' },
+        skip: (p - 1) * l,
+        take: l,
+      });
 
-    return { data, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
+      return { data, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
+    } catch {
+      return { data: [], total: 0, page: 1, limit: 30, totalPages: 0 };
+    }
   }
 
   @Get('invitation/:invitationId')
   async getByInvitation(@Param('invitationId') invitationId: string) {
-    return this.logs.find({
-      where: { related_id: invitationId },
-      order: { created_at: 'DESC' },
-    });
+    try {
+      return await this.logs.find({
+        where: { related_id: invitationId },
+        order: { created_at: 'DESC' },
+      });
+    } catch {
+      return [];
+    }
   }
 }

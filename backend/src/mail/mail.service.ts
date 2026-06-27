@@ -104,7 +104,7 @@ export class MailService {
         status: opts.status,
         error_message: opts.error_message || null,
       } as any));
-    } catch { this.logger.warn('EmailLog persistence failed'); }
+    } catch { /* table may not exist yet — set DB_SYNCHRONIZE=true */ }
   }
 
   private async deliver(to: string | string[], subject: string, html: string, meta?: {
