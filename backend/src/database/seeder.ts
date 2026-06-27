@@ -27,6 +27,8 @@ export async function seedDatabase(dataSource: DataSource) {
       last_name:     'Jas',
       system_role:   'admin' as any,
       is_active:     true,
+      bio:           'System Administrator',
+      phone:         '+250700000000',
     } as any);
     console.log('[seeder] ✅ Admin account created');
   } else {
