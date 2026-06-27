@@ -29,6 +29,7 @@ import { OrgChartPanel } from './components/OrgChartPanel';
 import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
 import { RecruitmentPanel } from './components/RecruitmentPanel';
+import { ForbiddenPage } from './components/ExceptionPages';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
 type BoardTab = 'board' | 'members' | 'chat' | 'stats' | 'feedback';
@@ -352,6 +353,7 @@ export default function App() {
           onNavigate={handleSidebarNav}
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(c => !c)}
+          isAdmin={isAdmin}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="bg-white border-b shadow-sm px-4 py-2 flex items-center justify-between gap-4 shrink-0">
@@ -472,11 +474,11 @@ export default function App() {
         </div>
       ) : topNav === ('org-chart' as any) ? (
         <div className="flex-1 overflow-auto">
-          <OrgChartPanel />
+          {isAdmin ? <OrgChartPanel /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('attendance' as any) ? (
         <div className="flex-1 overflow-auto">
-          <AttendancePanel />
+          {isAdmin ? <AttendancePanel /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('leave' as any) ? (
         <div className="flex-1 overflow-auto">
@@ -484,11 +486,11 @@ export default function App() {
         </div>
       ) : topNav === ('reports' as any) ? (
         <div className="flex-1 overflow-auto">
-          <ReportsPanel />
+          {isAdmin ? <ReportsPanel /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('recruitment' as any) ? (
         <div className="flex-1 overflow-auto">
-          <RecruitmentPanel />
+          {isAdmin ? <RecruitmentPanel /> : <ForbiddenPage />}
         </div>
       ) : (
         <div className="flex-1 overflow-auto flex flex-col">

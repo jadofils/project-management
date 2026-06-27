@@ -95,9 +95,10 @@ interface Props {
   onNavigate: (section: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  isAdmin: boolean;
 }
 
-export function Sidebar({ activeSection, onNavigate, collapsed, onToggle }: Props) {
+export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmin }: Props) {
   return (
     <div className={`h-full bg-white border-r flex flex-col shrink-0 transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}>
       <div className="px-4 py-4 border-b flex items-center justify-between">
@@ -113,6 +114,11 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle }: Prop
         {NAV_ITEMS.map(group => {
           const isActive = activeSection.startsWith(group.id);
           const Icon = group.icon;
+
+          // Hide admin-only sections
+          const adminOnly = ['organization', 'attendance', 'reports', 'recruitment'];
+          if (adminOnly.includes(group.id) && !isAdmin) return null;
+
           return (
             <div key={group.id} className="mb-1">
               <button
