@@ -32,13 +32,19 @@ export class TasksService {
 
   async create(userId: string, dto: any) {
     const count = await this.repo.count({ where: { project_id: dto.project_id, status: dto.status || 'todo' } });
-    const payload = { ...dto, sort_order: count };
-    // Set original_due_date from initial due_date
+    const payload = { ...dto, sort_order: count, created_by: userId };
     if (dto.due_date) payload.original_due_date = dto.due_date;
     const task = await this.repo.save(this.repo.create(payload as any)) as unknown as Task;
 
     const ids: string[] = task.assignee_ids?.length ? task.assignee_ids : (task.assignee_id ? [task.assignee_id] : []);
     const toNotify = ids.filter(id => id !== userId);
+
+    // Log assignments on creation
+    if (ids.length) {
+      const logBase = { task_id: task.id, project_id: task.project_id, task_title: task.title, changed_by: userId };
+      const logEntries = ids.map(uid => this.logs.create({ ...logBase, user_id: uid, action: 'assigned' } as any));
+      await Promise.all(logEntries.map(e => this.logs.save(e))).catch(e => this.logger.error('Log save failed on create', e));
+    }
 
     if (toNotify.length) {
       this.notifyMultiple(task, toNotify, userId, 'task_assigned').catch(e => this.logger.error('Notify failed', e));
