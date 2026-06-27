@@ -428,6 +428,8 @@ export const api = {
   },
   getOffices: () => request<any[]>('/attendance/offices'),
   createOffice: (dto: any) => request<any>('/attendance/offices', { method: 'POST', body: JSON.stringify(dto) }),
+  callIvr: (callerId: string, digits?: string) =>
+    request<string>(`/attendance/ivr?From=${encodeURIComponent(callerId)}&Digits=${digits || ''}`),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }

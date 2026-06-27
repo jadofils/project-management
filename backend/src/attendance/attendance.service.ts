@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as crypto from 'crypto';
-import { AttendanceToken, AttendanceRecord, Office, User } from '../database/entities';
+import { AttendanceToken, AttendanceRecord, Office, User, EmployeeProfile } from '../database/entities';
 import { InvalidTokenException, GeofenceException } from '../common/exceptions';
 
 @Injectable()
@@ -12,6 +12,7 @@ export class AttendanceService {
     @InjectRepository(AttendanceRecord) private records: Repository<AttendanceRecord>,
     @InjectRepository(Office)           private offices: Repository<Office>,
     @InjectRepository(User)             private users: Repository<User>,
+    @InjectRepository(EmployeeProfile)  private profiles: Repository<EmployeeProfile>,
   ) {}
 
   private readonly SERVER_SECRET = process.env.INTER_SYSTEM_ENCRYPTION_KEY || 'attendance-fallback-secret';
@@ -138,6 +139,60 @@ export class AttendanceService {
   // ── Offices ────────────────────────────────────────────────────────────────
   getOffices() { return this.offices.find({ order: { name: 'ASC' } }); }
   createOffice(dto: any) { return this.offices.save(this.offices.create(dto)); }
+
+  // ── IVR Phone Call Handler (Webhook from Twilio / Africa's Talking) ──────
+  async handleIvrCall(callerId: string, digits: string) {
+    if (!callerId) throw new BadRequestException('Caller ID is required');
+
+    // Find employee by phone number
+    const profile = await this.profiles.findOne({ where: { phone: callerId } });
+    if (!profile) {
+      return this.ivrResponse(`<Say>Phone number ${callerId} is not registered. Please contact HR.</Say>`);
+    }
+
+    const user = await this.users.findOne({ where: { id: profile.user_id, is_active: true } });
+    if (!user) return this.ivrResponse('<Say>Your account is inactive. Please contact HR.</Say>');
+
+    const today = new Date().toISOString().slice(0, 10);
+    let record = await this.records.findOne({ where: { user_id: user.id, date: today } });
+
+    const choice = digits.trim();
+
+    if (choice === '1') {
+      // Clock in
+      if (record && record.clock_in) {
+        return this.ivrResponse(`<Say>You are already clocked in today at ${record.clock_in.toLocaleTimeString()}. Press 2 to clock out.</Say>`);
+      }
+      if (!record) {
+        record = this.records.create({ user_id: user.id, date: today, clock_in: new Date(), method: 'call', verified: true } as any) as unknown as AttendanceRecord;
+        await this.records.save(record);
+      }
+      return this.ivrResponse(`<Say>Welcome ${user.first_name}. You are now clocked in. Have a great day!</Say>`);
+    } else if (choice === '2') {
+      // Clock out
+      if (!record || !record.clock_in) {
+        return this.ivrResponse('<Say>You are not clocked in yet today. Press 1 to clock in.</Say>');
+      }
+      if (record.clock_out) {
+        return this.ivrResponse(`<Say>You already clocked out at ${record.clock_out.toLocaleTimeString()}. Goodbye!</Say>`);
+      }
+      record.clock_out = new Date();
+      record.method = 'call';
+      record.status = this.determineStatus(record.clock_in, record.clock_out);
+      await this.records.save(record);
+      return this.ivrResponse(`<Say>Goodbye ${user.first_name}. You are now clocked out. Have a great evening!</Say>`);
+    } else {
+      // First call — prompt for choice
+      if (record && record.clock_in && !record.clock_out) {
+        return this.ivrResponse(`<Gather numDigits="1" timeout="10"><Say>Welcome ${user.first_name}. You are currently clocked in. Press 2 to clock out.</Say></Gather>`);
+      }
+      return this.ivrResponse(`<Gather numDigits="1" timeout="10"><Say>Welcome to ProManager Attendance. Press 1 to clock in, Press 2 to clock out.</Say></Gather>`);
+    }
+  }
+
+  private ivrResponse(inner: string): string {
+    return `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`;
+  }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   private determineStatus(clockIn: Date, clockOut: Date): string {
