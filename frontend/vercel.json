@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "env": {
-    "VITE_API_URL": "https://project-manager-api.onrender.com/api"
-  }
+    { "source": "/((?!sw\\.js|manifest\\.json|icon-.*\\.png|icon\\.svg).*)", "destination": "/index.html" }
+  ]
 }
