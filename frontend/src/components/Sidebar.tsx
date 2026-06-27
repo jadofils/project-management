@@ -1,4 +1,5 @@
-import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User } from 'lucide-react';
+import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User, Download, Share2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   id: string;
@@ -108,6 +109,32 @@ interface Props {
 }
 
 export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmin }: Props) {
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setIsInstalled(true); setInstallPrompt(null); });
+    if (window.matchMedia('(display-mode: standalone)').matches) setIsInstalled(true);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === 'accepted') { setIsInstalled(true); setInstallPrompt(null); }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: 'ipfundo', text: 'Project management & team collaboration platform', url: window.location.origin });
+    } else {
+      await navigator.clipboard.writeText(window.location.origin);
+      alert('Link copied to clipboard!');
+    }
+  };
   return (
     <div className={`h-full bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}>
       <div className="px-4 py-4 border-b flex items-center justify-between">
@@ -163,8 +190,20 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
       </div>
 
       {!collapsed && (
-        <div className="px-4 py-3 border-t text-[10px] text-gray-400">
-          ipfundo v1.0
+        <div className="px-3 py-3 border-t dark:border-gray-700 space-y-2">
+          {installPrompt && !isInstalled && (
+            <button onClick={handleInstall}
+              className="w-full flex items-center gap-2 px-2 py-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors">
+              <Download className="w-3.5 h-3.5" />Install App
+            </button>
+          )}
+          {isInstalled && (
+            <button onClick={handleShare}
+              className="w-full flex items-center gap-2 px-2 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              <Share2 className="w-3.5 h-3.5" />Share ipfundo
+            </button>
+          )}
+          <p className="text-[10px] text-gray-400 text-center">ipfundo v1.0</p>
         </div>
       )}
     </div>
