@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { LayoutDashboard, Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { api, saveToken, type User } from '../services/api';
+import { connectSocket } from '../services/chat';
+import { toast } from 'sonner';
 
 interface Props {
   onAuth: (user: User) => void;
@@ -28,9 +30,12 @@ export function AuthPage({ onAuth }: Props) {
     try {
       const res = await api.login({ email: form.email, password: form.password });
       saveToken(res.token);
+      connectSocket(res.token);
       if (res.user.must_change_password) {
         setPendingUser(res.user);
+        toast.info('Please change your password to continue');
       } else {
+        toast.success(`Welcome back, ${res.user.first_name}!`);
         onAuth(res.user);
       }
     } catch (err: any) {
@@ -49,6 +54,7 @@ export function AuthPage({ onAuth }: Props) {
     try {
       await api.changePassword({ current_password: form.password, new_password: newPwd });
       const updated = { ...pendingUser!, must_change_password: false };
+      toast.success('Password changed successfully!');
       onAuth(updated);
     } catch (err: any) {
       setError(err.message || 'Failed to change password');

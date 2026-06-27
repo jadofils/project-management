@@ -6,6 +6,7 @@ import {
   Flag, Layers, Users, LogOut, UserCog, Mail, BarChart3,
 } from 'lucide-react';
 import { api, isAuthenticated, logout, wakeUpServer, userInitials, userName, type Project, type Task, type User, type Member } from './services/api';
+import { connectSocket } from './services/chat';
 import { getRoleDef } from './lib/roles';
 import { useTheme } from './lib/ThemeContext';
 import { COLUMNS } from './lib/constants';
@@ -95,7 +96,11 @@ export default function App() {
     return stopPing;
   }, []);
 
-  const handleAuth = (u: User) => { setUser(u); setAuthed(true); };
+  const handleAuth = (u: User) => {
+    setUser(u); setAuthed(true); setLoading(false);
+    const token = localStorage.getItem('accessToken');
+    if (token) connectSocket(token);
+  };
 
   const handleInviteAccepted = async (projectId: string) => {
     // Strip the invite param from URL without reloading
