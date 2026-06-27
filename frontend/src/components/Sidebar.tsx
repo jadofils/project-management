@@ -108,7 +108,7 @@ interface Props {
 
 export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmin }: Props) {
   return (
-    <div className={`h-full bg-white border-r flex flex-col shrink-0 transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}>
+    <div className={`h-full bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}>
       <div className="px-4 py-4 border-b flex items-center justify-between">
         {!collapsed && (
           <span className="font-bold text-sm text-indigo-600 truncate">ProManager</span>

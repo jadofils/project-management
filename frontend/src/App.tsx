@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api, isAuthenticated, logout, wakeUpServer, userInitials, userName, type Project, type Task, type User, type Member } from './services/api';
 import { getRoleDef } from './lib/roles';
+import { useTheme } from './lib/ThemeContext';
 import { COLUMNS } from './lib/constants';
 import { computePermissions, taskPermissions, type ProjectPermissions } from './lib/permissions';
 import { TaskDetailModal } from './components/TaskDetailModal';
@@ -306,6 +307,7 @@ export default function App() {
   const name      = user ? userName(user) : 'User';
   const isAdmin   = user?.system_role === 'admin';
   const userMap   = Object.fromEntries(allUsers.map(u => [u.id, u]));
+  const { theme } = useTheme();
 
   const projectPerms: ProjectPermissions = user
     ? computePermissions(user, currentMember)
@@ -316,7 +318,7 @@ export default function App() {
     : (currentMember?.role ? [currentMember.role] : []);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       <Toaster position="top-right" richColors />
 
       {selectedTask && user && (
@@ -364,7 +366,7 @@ export default function App() {
           isAdmin={isAdmin}
         />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="bg-white border-b shadow-sm px-4 py-2 flex items-center justify-between gap-4 shrink-0">
+          <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm px-4 py-2 flex items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
                 <LayoutDashboard className="w-4 h-4 text-white" />
@@ -509,7 +511,7 @@ export default function App() {
           {activeProject ? (
             <>
               {/* Board sub-tabs */}
-              <div className="bg-white border-b px-4 flex items-center gap-1 flex-wrap">
+              <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 flex items-center gap-1 flex-wrap">
                 {([
                   { id: 'board',    icon: LayoutDashboard, label: 'Board' },
                   { id: 'stats',    icon: BarChart3,        label: 'Stats' },
