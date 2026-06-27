@@ -4,10 +4,23 @@ import { toast } from 'sonner';
 import { api, userName } from '../services/api';
 
 export function LeavePanel() {
-  const [tab, setTab] = useState<'requests' | 'balances'>('requests');
+  const [tab, setTab] = useState<'requests' | 'balances' | 'calendar'>('requests');
   const [requests, setRequests] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]);
   const [types, setTypes] = useState<any[]>([]);
+  const [allApproved, setAllApproved] = useState<any[]>([]);
+
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:4001/api';
+  const token = () => localStorage.getItem('accessToken') || '';
+
+  const downloadIcs = async () => {
+    try {
+      const res = await fetch(`${API}/reports/calendar`, { headers: { Authorization: `Bearer ${token()}` } });
+      const blob = await res.blob();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'leave-calendar.ics'; a.click();
+      toast.success('Calendar downloaded');
+    } catch { toast.error('Download failed'); }
+  };
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ leave_type_id: '', start_date: '', end_date: '', reason: '' });
@@ -16,8 +29,11 @@ export function LeavePanel() {
   const load = async () => {
     setLoading(true);
     try {
-      const [reqs, bals, typs] = await Promise.all([api.getLeaveRequests(), api.getLeaveBalances(), api.getLeaveTypes()]);
-      setRequests(reqs); setBalances(bals); setTypes(typs);
+      const [reqs, bals, typs, approved] = await Promise.all([
+        api.getLeaveRequests(), api.getLeaveBalances(), api.getLeaveTypes(),
+        api.getLeaveRequests(undefined, 'approved'),
+      ]);
+      setRequests(reqs); setBalances(bals); setTypes(typs); setAllApproved(approved);
     } catch { toast.error('Failed to load leave data'); }
     finally { setLoading(false); }
   };
@@ -55,7 +71,7 @@ export function LeavePanel() {
       </div>
 
       <div className="flex items-center gap-1 mb-4 border-b">
-        {[{ id: 'requests', label: 'Requests' }, { id: 'balances', label: 'My Balances' }].map(t => (
+        {[{ id: 'requests', label: 'Requests' }, { id: 'balances', label: 'My Balances' }, { id: 'calendar', label: 'Team Calendar' }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)}
             className={`text-sm px-4 py-2 font-medium border-b-2 transition-colors ${tab === t.id ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
         ))}
@@ -102,6 +118,32 @@ export function LeavePanel() {
             </div>
           ))}
           {requests.length === 0 && <div className="text-center py-12 text-gray-400"><Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm">No leave requests yet</p></div>}
+        </div>
+      )}
+
+      {tab === 'calendar' && (
+        <div className="space-y-3">
+          {allApproved.length === 0 ? (
+            <div className="text-center py-12 text-gray-400"><Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm">No approved leave to display</p></div>
+          ) : (
+            allApproved.map(r => (
+              <div key={r.id} className="bg-white rounded-xl border p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-green-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">{r.user ? userName(r.user) : r.user_id}</p>
+                  <p className="text-xs text-gray-500">{r.start_date} → {r.end_date} · {r.days} day{r.days > 1 ? 's' : ''} · {r.leave_type?.name}</p>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">Approved</span>
+              </div>
+            ))
+          )}
+          <div className="pt-2">
+            <button onClick={() => downloadIcs()} className="text-xs text-indigo-500 hover:text-indigo-700 font-medium flex items-center gap-1">
+              <Calendar className="w-3 h-3" />Download .ics calendar
+            </button>
+          </div>
         </div>
       )}
 

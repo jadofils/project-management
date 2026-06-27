@@ -123,11 +123,15 @@ export default function App() {
       setTopNav(section === 'email-logs' || section === 'invitations' ? 'comms' : section as TopNav);
     } else if (section === 'employees') {
       setTopNav('users');
-    } else if (section === 'org-chart') {
+    } else if (section === 'org-chart' || section === 'divisions' || section === 'departments' || section === 'positions') {
       setTopNav('org-chart' as any);
-    } else if (section === 'attendance' || section === 'today' || section === 'records' || section === 'report') {
+    } else if (section === 'attendance' || section === 'today' || section === 'records') {
       setTopNav('attendance' as any);
-    } else if (section === 'requests' || section === 'balances' || section === 'calendar') {
+    } else if (section === 'report') {
+      setTopNav('reports' as any);
+    } else if (section === 'requests' || section === 'balances') {
+      setTopNav('leave' as any);
+    } else if (section === 'calendar') {
       setTopNav('leave' as any);
     } else if (section === 'attendance-report' || section === 'leave-report' || section === 'headcount') {
       setTopNav('reports' as any);

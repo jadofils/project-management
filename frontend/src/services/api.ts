@@ -233,14 +233,6 @@ export interface FeedbackReply {
 
 export interface Message {
   id: string;
-  feedback_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-}
-
-export interface Message {
-  id: string;
   project_id: string;
   sender_id: string;
   content: string;
