@@ -106,10 +106,22 @@ export class InvitationsService {
 
   // ── List pending invitations for a project ────────────────────────────────
   async listForProject(projectId: string) {
-    return this.invitations.find({
-      where: { project_id: projectId, status: 'pending' },
-      order: { created_at: 'DESC' },
-    });
+    try {
+      const data = await this.invitations.find({
+        where: { project_id: projectId },
+        order: { created_at: 'DESC' },
+      });
+      const invitedByIds = [...new Set(data.map(inv => inv.invited_by).filter(Boolean))] as string[];
+      const users = invitedByIds.length ? await this.users.find({ where: { id: In(invitedByIds) }, select: ['id', 'first_name', 'last_name'] }) : [];
+      const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+      return data.map(inv => ({
+        ...inv,
+        invited_by_name: inv.invited_by ? `${userMap[inv.invited_by]?.first_name || ''} ${userMap[inv.invited_by]?.last_name || ''}`.trim() : null,
+        accepted_by_name: null,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   // ── Cancel invitation ─────────────────────────────────────────────────────
