@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
   /^https:\/\/.*\.vercel\.app$/,
   /^https:\/\/.*\.onrender\.com$/,
   'https://project-management-nine-roan.vercel.app',
+  'https://project-management-ghlc.onrender.com',
 ];
 
 function isOriginAllowed(origin: string | undefined): boolean {
