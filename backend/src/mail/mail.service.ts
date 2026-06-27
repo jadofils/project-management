@@ -52,7 +52,7 @@ export class MailService {
     this.transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 587, secure: false, auth: { user: mailUser, pass: mailPass } });
   }
 
-  private get from() { const u = process.env.MAIL_USER; return u ? `"ProManager" <${u}>` : ''; }
+  private get from() { const u = process.env.MAIL_USER; return u ? `"ipfundo" <${u}>` : ''; }
 
   private async logEmail(opts: { type: string; sender_id?: string; recipient: string; subject: string; project_id?: string; related_id?: string; status: 'sent' | 'failed'; error_message?: string }) {
     try { await this.emailLogs.save(this.emailLogs.create({ ...opts, sender_id: opts.sender_id || null, project_id: opts.project_id || null, related_id: opts.related_id || null, error_message: opts.error_message || null } as any)); } catch {}
@@ -236,14 +236,14 @@ export class MailService {
 <table width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04)">
   <tr><td style="background:#4f46e5;padding:20px 28px">
     <table width="100%"><tr>
-      <td style="color:white;font-size:16px;font-weight:700;letter-spacing:-0.3px">ProManager</td>
+      <td style="color:white;font-size:16px;font-weight:700;letter-spacing:-0.3px">ipfundo</td>
       <td style="text-align:right;color:rgba(255,255,255,0.65);font-size:11px">Team Collaboration</td>
     </tr></table>
   </td></tr>
   <tr><td style="padding:32px 28px">${body}</td></tr>
   <tr><td style="padding:20px 28px;border-top:1px solid #f1f5f9;background:#fafbfc">
     <table width="100%"><tr>
-      <td style="color:#94a3b8;font-size:11px;line-height:1.6">ProManager — Team Collaboration Platform<br>You received this email because you are a member of a project on ProManager.</td>
+      <td style="color:#94a3b8;font-size:11px;line-height:1.6">ipfundo — Team Collaboration Platform<br>You received this email because you are a member of a project on ipfundo.</td>
       <td style="text-align:right;vertical-align:bottom"><span style="background:#e2e8f0;color:#64748b;font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600">AUTO NOTIFICATION</span></td>
     </tr></table>
   </td></tr>

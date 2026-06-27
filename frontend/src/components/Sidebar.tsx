@@ -111,7 +111,7 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
     <div className={`h-full bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}>
       <div className="px-4 py-4 border-b flex items-center justify-between">
         {!collapsed && (
-          <span className="font-bold text-sm text-indigo-600 truncate">ProManager</span>
+          <span className="font-bold text-sm text-indigo-600 dark:text-indigo-400 truncate">ipfundo</span>
         )}
         <button onClick={onToggle} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400">
           <ChevronRight className={`w-4 h-4 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
@@ -163,7 +163,7 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
 
       {!collapsed && (
         <div className="px-4 py-3 border-t text-[10px] text-gray-400">
-          ProManager v1.0.0
+          ipfundo v1.0
         </div>
       )}
     </div>

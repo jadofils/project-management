@@ -173,6 +173,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(data.project_id).emit('chat:message', serialized);
 
+    // Send push notification to offline members
+    this.server.to(data.project_id).emit('notification', {
+      type: 'chat',
+      title: 'New message',
+      body: `${serialized?.sender?.first_name || 'Someone'}: ${data.content.slice(0, 60)}`,
+      project_id: data.project_id,
+    });
+
     if (data.client_id) {
       client.emit('chat:ack', { client_id: data.client_id, message_id: saved.id });
     }

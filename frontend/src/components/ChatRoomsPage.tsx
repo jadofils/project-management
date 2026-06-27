@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
-import { Send, Loader2, MessageCircle, ImagePlus, X, Reply, Paperclip, HelpCircle, Users, Check, CheckCheck } from 'lucide-react';
+import { Send, Loader2, MessageCircle, ImagePlus, X, Reply, Paperclip, HelpCircle, Users, Check, CheckCheck, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, type Message, type User, type Project, userInitials, userName } from '../services/api';
 import {
@@ -8,6 +8,7 @@ import {
   onChatMessage, onChatAck, onPresenceUpdate, onChatRead,
   sendChatMessage, sendReadReceipt, type OnlinePresence,
 } from '../services/chat';
+import { sendPushNotification } from '../services/notifications';
 
 interface Props {
   currentUser: User;
@@ -67,6 +68,12 @@ export const ChatRoomsPage = React.memo(function ChatRoomsPage({ currentUser, al
         if (room.some(m => m.id === msg.id)) return prev;
         return { ...prev, [msg.project_id]: [...room, { ...msg, sender: msg.sender || userMap[msg.sender_id] }] };
       });
+      // Push notification for messages from others
+      if (msg.sender_id !== currentUser.id && document.hidden) {
+        const sender = msg.sender || userMap[msg.sender_id];
+        const name = sender ? `${sender.first_name} ${sender.last_name}` : 'Someone';
+        sendPushNotification(`ipfundo — ${name}`, msg.content.slice(0, 100), window.location.href);
+      }
     });
 
     const unsubAck = onChatAck(({ client_id, message_id }) => {

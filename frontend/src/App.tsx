@@ -372,7 +372,7 @@ export default function App() {
               <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
                 <LayoutDashboard className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-gray-900 text-sm hidden sm:block">Project Manager</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100 text-sm hidden sm:block">ipfundo</span>
               <div className="h-5 border-l border-gray-200 mx-1" />
 
               <nav className="flex items-center gap-1">
