@@ -22,6 +22,7 @@ import { FeedbackPage } from './components/FeedbackPage';
 import { TaskCard } from './components/TaskCard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { Sidebar } from './components/Sidebar';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
 type BoardTab = 'board' | 'members' | 'chat' | 'stats' | 'feedback';
@@ -53,6 +54,8 @@ export default function App() {
   const [boardTab, setBoardTab] = useState<BoardTab>('board');
   const [topNav,   setTopNav]   = useState<TopNav>('projects');
   const [showMailComposer, setShowMailComposer] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarSection, setSidebarSection] = useState('board');
 
   // ── Invitation token from URL ─────────────────────────────────────────────
   const [inviteToken, setInviteToken] = useState<string | null>(() => {
@@ -102,6 +105,19 @@ export default function App() {
   };
 
   const handleLogout = () => { logout(); setUser(null); setAuthed(false); setProjects([]); setActiveProject(null); setTasks([]); };
+
+  const handleSidebarNav = (section: string) => {
+    setSidebarSection(section);
+    // Map sidebar sections to topNav + boardTab
+    if (section === 'admin' || section === 'users' || section === 'comms' || section === 'email-logs' || section === 'invitations') {
+      setTopNav(section === 'email-logs' || section === 'invitations' ? 'comms' : section as TopNav);
+    } else if (section === 'employees') {
+      setTopNav('users');
+    } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
+      setTopNav('projects');
+      setBoardTab(section as BoardTab);
+    }
+  };
 
   // ── Projects ─────────────────────────────────────────────────────────────
   const loadProjects = useCallback(async () => {
@@ -300,107 +316,101 @@ export default function App() {
       )}
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b shadow-sm px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-            <LayoutDashboard className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-gray-900 text-sm hidden sm:block">Project Manager</span>
-          <div className="h-5 border-l border-gray-200 mx-1" />
-
-          {/* Top Nav */}
-          <nav className="flex items-center gap-1">
-            <button
-              onClick={() => setTopNav('projects')}
-              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'projects' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <FolderKanban className="w-4 h-4" />Projects
-            </button>
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => setTopNav('admin')}
-                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'admin' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  <Layers className="w-4 h-4" />Dashboard
-                </button>
-                <button
-                  onClick={() => setTopNav('users')}
-                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  <UserCog className="w-4 h-4" />Users
-                </button>
-                <button
-                  onClick={() => setTopNav('comms')}
-                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'comms' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  <Mail className="w-4 h-4" />Comms
-                </button>
-              </>
-            )}
-          </nav>
-
-          {topNav === 'projects' && (
-            <>
-              <div className="h-5 border-l border-gray-200 mx-1" />
-              {/* Project selector */}
-              <div className="relative flex items-center gap-1">
-                <select
-                  className="text-sm border rounded-lg px-3 py-1.5 bg-white min-w-[180px] pr-7 appearance-none cursor-pointer"
-                  value={activeProject?.id || ''}
-                  onChange={e => { const p = projects.find(pp => pp.id === e.target.value); if (p) selectProject(p); }}
-                >
-                  <option value="">Select a project…</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar
+          activeSection={sidebarSection}
+          onNavigate={handleSidebarNav}
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(c => !c)}
+        />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="bg-white border-b shadow-sm px-4 py-2 flex items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                <LayoutDashboard className="w-4 h-4 text-white" />
               </div>
-              <button
-                onClick={() => setShowNewProject(true)}
-                className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg"
-              >
-                <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
-              </button>
-              {activeProject && (
-                <button onClick={() => setShowDeleteConfirm(true)} disabled={deletingProject} title="Delete project"
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                  {deletingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              <span className="font-bold text-gray-900 text-sm hidden sm:block">Project Manager</span>
+              <div className="h-5 border-l border-gray-200 mx-1" />
+
+              <nav className="flex items-center gap-1">
+                <button onClick={() => setTopNav('projects')}
+                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'projects' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <FolderKanban className="w-4 h-4" />Projects
+                </button>
+                {isAdmin && (
+                  <>
+                    <button onClick={() => setTopNav('admin')}
+                      className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'admin' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      <Layers className="w-4 h-4" />Dashboard
+                    </button>
+                    <button onClick={() => setTopNav('users')}
+                      className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      <UserCog className="w-4 h-4" />Users
+                    </button>
+                    <button onClick={() => setTopNav('comms')}
+                      className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'comms' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      <Mail className="w-4 h-4" />Comms
+                    </button>
+                  </>
+                )}
+              </nav>
+
+              {topNav === 'projects' && (
+                <>
+                  <div className="h-5 border-l border-gray-200 mx-1" />
+                  <div className="relative flex items-center gap-1">
+                    <select
+                      className="text-sm border rounded-lg px-3 py-1.5 bg-white min-w-[180px] pr-7 appearance-none cursor-pointer"
+                      value={activeProject?.id || ''}
+                      onChange={e => { const p = projects.find(pp => pp.id === e.target.value); if (p) selectProject(p); }}
+                    >
+                      <option value="">Select a project…</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
+                  </div>
+                  <button onClick={() => setShowNewProject(true)}
+                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg">
+                    <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
+                  </button>
+                  {activeProject && (
+                    <button onClick={() => setShowDeleteConfirm(true)} disabled={deletingProject} title="Delete project"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                      {deletingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button onClick={() => setShowMailComposer(true)}
+                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                  <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
                 </button>
               )}
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <button onClick={() => setShowMailComposer(true)}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-              <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
-            </button>
-          )}
-          <button onClick={() => { setTopNav('projects'); setBoardTab('feedback'); }}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-            <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
-          </button>
-
-          {/* User menu */}
-          <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-            {user?.avatar_url ? (
-              <img src={user.avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold">{initials}</div>
-            )}
-            <div className="hidden sm:block">
-              <p className="text-sm font-medium text-gray-800 max-w-[120px] truncate">{name}</p>
-              {isAdmin && <p className="text-[10px] text-purple-500 font-semibold">Admin</p>}
+              <button onClick={() => { setTopNav('projects'); setBoardTab('feedback'); }}
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
+              </button>
+              <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold">{initials}</div>
+                )}
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-gray-800 max-w-[120px] truncate">{name}</p>
+                  {isAdmin && <p className="text-[10px] text-purple-500 font-semibold">Admin</p>}
+                </div>
+                <button onClick={handleLogout} title="Sign out"
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg ml-1">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <button onClick={handleLogout} title="Sign out"
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg ml-1">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+          </header>
 
       {/* ── Main content ────────────────────────────────────────────────────── */}
       {topNav === 'admin' ? (
@@ -615,6 +625,8 @@ export default function App() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
