@@ -20,7 +20,10 @@ function isOriginAllowed(origin: string | undefined): boolean {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false,
+  }));
 
   const handleCorsOrigin = (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
     cb(null, isOriginAllowed(origin));
