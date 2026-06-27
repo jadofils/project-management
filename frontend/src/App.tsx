@@ -78,6 +78,8 @@ export default function App() {
     return params.get('invite');
   });
 
+  const { theme } = useTheme();
+
   // ── Bootstrap ────────────────────────────────────────────────────────────
   useEffect(() => {
     const stopPing = wakeUpServer();
@@ -275,7 +277,7 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
   );
@@ -283,7 +285,7 @@ export default function App() {
   // Invitation page — intercept before login if there's a token
   if (inviteToken) return (
     <>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors theme={theme} />
       <AcceptInvitePage
         token={inviteToken}
         currentUser={user}
@@ -298,7 +300,7 @@ export default function App() {
 
   if (!authed) return (
     <>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors theme={theme} />
       <AuthPage onAuth={handleAuth} />
     </>
   );
@@ -307,7 +309,6 @@ export default function App() {
   const name      = user ? userName(user) : 'User';
   const isAdmin   = user?.system_role === 'admin';
   const userMap   = Object.fromEntries(allUsers.map(u => [u.id, u]));
-  const { theme } = useTheme();
 
   const projectPerms: ProjectPermissions = user
     ? computePermissions(user, currentMember)
@@ -319,7 +320,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors theme={theme} />
 
       {selectedTask && user && (
         <TaskDetailModal
