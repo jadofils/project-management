@@ -36,6 +36,8 @@ export class ProjectsService {
     const entity = this.repo.create({
       name: dto.name, description: dto.description ?? null, owner_id: userId,
       division_id: dto.division_id || null,
+      company_name: dto.company_name || null,
+      company_email: dto.company_email || null,
       type: dto.division_id ? 'company' : (dto.type || 'individual'),
     } as any);
     const p = await this.repo.save(entity) as unknown as Project;

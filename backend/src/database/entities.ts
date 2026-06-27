@@ -20,6 +20,8 @@ export class User {
   @Column({ type: 'varchar', length: 100 }) first_name!: string;
   @Column({ type: 'varchar', length: 100 }) last_name!: string;
   @Column({ type: 'varchar', length: 500, nullable: true }) avatar_url!: string | null;
+  @Column({ type: 'text', nullable: true }) bio!: string | null;
+  @Column({ type: 'varchar', length: 30, nullable: true }) phone!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'user' }) system_role!: SystemRole;
   @Column({ type: 'boolean', default: true }) is_active!: boolean;
   @Column({ type: 'boolean', default: false }) must_change_password!: boolean;
@@ -37,6 +39,8 @@ export class Project {
   @Column({ type: 'text', nullable: true }) description!: string | null;
   @Column({ type: 'uuid' }) owner_id!: string;
   @Column({ type: 'uuid', nullable: true }) division_id!: string | null;
+  @Column({ type: 'varchar', length: 200, nullable: true }) company_name!: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true }) company_email!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'individual' }) type!: string;
   @Column({ type: 'varchar', length: 20, default: 'active' }) status!: string;
   @CreateDateColumn() created_at!: Date;

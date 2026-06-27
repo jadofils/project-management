@@ -29,6 +29,7 @@ import { OrgChartPanel } from './components/OrgChartPanel';
 import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
 import { RecruitmentPanel } from './components/RecruitmentPanel';
+import { ProfileSettings } from './components/ProfileSettings';
 import { ForbiddenPage } from './components/ExceptionPages';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
@@ -52,6 +53,8 @@ export default function App() {
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [newProjectType, setNewProjectType] = useState<'individual' | 'company'>('individual');
   const [newProjectDivisionId, setNewProjectDivisionId] = useState('');
+  const [newProjectCompanyName, setNewProjectCompanyName] = useState('');
+  const [newProjectCompanyEmail, setNewProjectCompanyEmail] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
   const [projectFilter, setProjectFilter] = useState<'all' | 'company' | 'individual'>('all');
   const [divisions, setDivisions] = useState<any[]>([]);
@@ -138,6 +141,8 @@ export default function App() {
       setTopNav('reports' as any);
     } else if (section === 'postings' || section === 'applications') {
       setTopNav('recruitment' as any);
+    } else if (section === 'profile') {
+      setTopNav('settings' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
       setTopNav('projects');
       setBoardTab(section as BoardTab);
@@ -187,8 +192,11 @@ export default function App() {
         description: newProjectDesc.trim() || undefined,
         type: newProjectType,
         division_id: newProjectType === 'company' ? newProjectDivisionId || undefined : undefined,
+        company_name: newProjectType === 'company' ? newProjectCompanyName.trim() || undefined : undefined,
+        company_email: newProjectType === 'company' ? newProjectCompanyEmail.trim() || undefined : undefined,
       });
-      setNewProjectName(''); setNewProjectDesc(''); setNewProjectType('individual'); setNewProjectDivisionId(''); setShowNewProject(false);
+      setNewProjectName(''); setNewProjectDesc(''); setNewProjectType('individual'); setNewProjectDivisionId('');
+      setNewProjectCompanyName(''); setNewProjectCompanyEmail(''); setShowNewProject(false);
       await loadProjects();
       selectProject(p);
       toast.success('Project created');
@@ -492,6 +500,10 @@ export default function App() {
         <div className="flex-1 overflow-auto">
           {isAdmin ? <RecruitmentPanel /> : <ForbiddenPage />}
         </div>
+      ) : topNav === ('settings' as any) ? (
+        <div className="flex-1 overflow-auto">
+          {user && <ProfileSettings user={user} onUpdate={u => setUser(u)} />}
+        </div>
       ) : (
         <div className="flex-1 overflow-auto flex flex-col">
           {activeProject ? (
@@ -719,6 +731,14 @@ export default function App() {
                     {divisions.map(d => <option key={d.id} value={d.id}>{d.name} ({d.code})</option>)}
                   </select>
                 </div>
+              )}
+              {newProjectType === 'company' && (
+                <>
+                  <input value={newProjectCompanyName} onChange={e => setNewProjectCompanyName(e.target.value)}
+                    placeholder="Company name" className="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
+                  <input value={newProjectCompanyEmail} onChange={e => setNewProjectCompanyEmail(e.target.value)}
+                    placeholder="Company email" type="email" className="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
+                </>
               )}
             </div>
             <div className="flex gap-2 justify-end mt-5">

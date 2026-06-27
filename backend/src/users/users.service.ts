@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../database/entities';
 
-const PUBLIC_COLS: (keyof User)[] = ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'system_role', 'is_active', 'created_at'];
+const PUBLIC_COLS: (keyof User)[] = ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'bio', 'phone', 'system_role', 'is_active', 'created_at'];
 
 @Injectable()
 export class UsersService {
@@ -19,7 +19,7 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, dto: Partial<Pick<User, 'first_name' | 'last_name' | 'system_role' | 'is_active' | 'avatar_url'>>) {
+  async update(id: string, dto: Partial<Pick<User, 'first_name' | 'last_name' | 'system_role' | 'is_active' | 'avatar_url' | 'bio' | 'phone'>>) {
     await this.users.update(id, dto as any);
     return this.findOne(id);
   }

@@ -66,6 +66,8 @@ export interface User {
   first_name: string;
   last_name: string;
   avatar_url?: string | null;
+  bio?: string | null;
+  phone?: string | null;
   system_role: 'admin' | 'user';
   is_active: boolean;
   must_change_password?: boolean;
@@ -109,7 +111,7 @@ export interface InvitationInfo {
   emailExists: boolean;
 }
 
-export interface Project { id: string; name: string; description?: string; owner_id: string; division_id?: string | null; type: string; division_name?: string | null; status: string; created_at: string; updated_at: string; }
+export interface Project { id: string; name: string; description?: string; owner_id: string; division_id?: string | null; company_name?: string | null; company_email?: string | null; type: string; division_name?: string | null; status: string; created_at: string; updated_at: string; }
 
 export interface AdminStats {
   totalProjects: number;
@@ -270,7 +272,7 @@ export const api = {
 
   // Projects
   getProjects: () => request<Project[]>('/projects'),
-  createProject: (dto: { name: string; description?: string; division_id?: string; type?: string }) => request<Project>('/projects', { method: 'POST', body: JSON.stringify(dto) }),
+  createProject: (dto: { name: string; description?: string; division_id?: string; company_name?: string; company_email?: string; type?: string }) => request<Project>('/projects', { method: 'POST', body: JSON.stringify(dto) }),
   setProjectStatus: (id: string, status: 'active' | 'disabled') =>
     request<Project>(`/projects/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: 'DELETE' }),
