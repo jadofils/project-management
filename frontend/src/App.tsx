@@ -51,6 +51,7 @@ export default function App() {
   const [newProjectType, setNewProjectType] = useState<'individual' | 'company'>('individual');
   const [newProjectDivisionId, setNewProjectDivisionId] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<'all' | 'company' | 'individual'>('all');
   const [divisions, setDivisions] = useState<any[]>([]);
 
   const [newTaskForCol, setNewTaskForCol] = useState<string | null>(null);
@@ -379,7 +380,7 @@ export default function App() {
                 )}
               </nav>
 
-              {topNav === 'projects' && (
+                  {topNav === 'projects' && (
                 <>
                   <div className="h-5 border-l border-gray-200 mx-1" />
                   <div className="relative flex items-center gap-1">
@@ -389,10 +390,18 @@ export default function App() {
                       onChange={e => { const p = projects.find(pp => pp.id === e.target.value); if (p) selectProject(p); }}
                     >
                       <option value="">Select a project…</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.type === 'company' ? ' [Company]' : ' [Personal]'}{p.division_name ? ` — ${p.division_name}` : ''}</option>)}
+                      {projects
+                        .filter(p => projectFilter === 'all' || (projectFilter === 'company' ? p.type === 'company' : p.type !== 'company'))
+                        .map(p => <option key={p.id} value={p.id}>{p.name}{p.type === 'company' ? ' [Company]' : ' [Personal]'}{p.division_name ? ` — ${p.division_name}` : ''}</option>)}
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
                   </div>
+                  <select value={projectFilter} onChange={e => setProjectFilter(e.target.value as any)}
+                    className="text-xs border rounded-lg px-2 py-1.5 bg-white text-gray-500 cursor-pointer">
+                    <option value="all">All</option>
+                    <option value="company">Company</option>
+                    <option value="individual">Personal</option>
+                  </select>
                   <button onClick={() => setShowNewProject(true)}
                     className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg">
                     <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
@@ -489,6 +498,9 @@ export default function App() {
                 ))}
                 <div className="ml-3 text-sm text-gray-400 hidden sm:block py-2.5">
                   {activeProject.name}
+                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${activeProject.type === 'company' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                    {activeProject.type === 'company' ? 'Company' : 'Personal'}
+                  </span>
                 </div>
                 <div className="ml-auto flex items-center gap-2 py-1.5">
                   {/* Role switcher — only shown when user has 2+ roles in this project */}
@@ -527,6 +539,17 @@ export default function App() {
                       {COLUMNS.map(col => {
                         const colTasks = tasks.filter(t => t.status === col.id).sort((a, b) => a.sort_order - b.sort_order);
                         const isMember = !!currentMember || user?.system_role === 'admin';
+
+                        // Group tasks by module
+                        const grouped = colTasks.reduce((acc, task) => {
+                          const key = task.module || '__ungrouped__';
+                          if (!acc[key]) acc[key] = [];
+                          acc[key].push(task);
+                          return acc;
+                        }, {} as Record<string, Task[]>);
+
+                        const moduleKeys = Object.keys(grouped);
+
                         return (
                           <div key={col.id} className={`${col.color} rounded-2xl flex flex-col overflow-hidden`}>
                             <div className="px-3 py-2.5 flex items-center justify-between">
@@ -544,24 +567,41 @@ export default function App() {
                             <Droppable droppableId={col.id}>
                               {(provided, snapshot) => (
                                 <div ref={provided.innerRef} {...provided.droppableProps}
-                                  className={`flex-1 px-3 pb-3 space-y-2 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/60' : ''}`}>
-                                  {colTasks.map((task, i) => (
-                                    <TaskCard
-                                      key={task.id} task={task} index={i}
-                                      onOpen={setSelectedTask} userMap={userMap}
-                                      isDragDisabled={!projectPerms.canDrag}
-                                      currentUserId={user?.id}
-                                      isMember={isMember}
-                                      canConfirm={projectPerms.isManager}
-                                      canEditTask={projectPerms.canEditTask}
-                                      onLike={handleLike}
-                                      onQuickStatus={handleQuickStatus}
-                                      onAskHelp={(task) => {
-                                        setHelpTask({ taskId: task.id, taskTitle: task.title });
-                                        setBoardTab('chat');
-                                      }}
-                                    />
-                                  ))}
+                                  className={`flex-1 px-3 pb-3 space-y-3 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/60' : ''}`}>
+                                  {moduleKeys.map(moduleKey => {
+                                    const moduleTasks = grouped[moduleKey];
+                                    const isModule = moduleKey !== '__ungrouped__';
+                                    return (
+                                      <div key={moduleKey}>
+                                        {isModule && (
+                                          <div className="flex items-center gap-2 mb-1.5 ml-1">
+                                            <span className="w-2 h-2 rounded-full bg-indigo-300" />
+                                            <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider truncate">{moduleKey}</span>
+                                            <span className="text-[9px] text-gray-400">{moduleTasks.length}</span>
+                                          </div>
+                                        )}
+                                        <div className="space-y-2">
+                                          {moduleTasks.map((task, i) => (
+                                            <TaskCard
+                                              key={task.id} task={task} index={i}
+                                              onOpen={setSelectedTask} userMap={userMap}
+                                              isDragDisabled={!projectPerms.canDrag}
+                                              currentUserId={user?.id}
+                                              isMember={isMember}
+                                              canConfirm={projectPerms.isManager}
+                                              canEditTask={projectPerms.canEditTask}
+                                              onLike={handleLike}
+                                              onQuickStatus={handleQuickStatus}
+                                              onAskHelp={(task) => {
+                                                setHelpTask({ taskId: task.id, taskTitle: task.title });
+                                                setBoardTab('chat');
+                                              }}
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                   {provided.placeholder}
                                   {colTasks.length === 0 && !snapshot.isDraggingOver && (
                                     <div className="text-center py-6 text-xs text-gray-300">
@@ -574,7 +614,7 @@ export default function App() {
                             {col.id === 'todo' && projectPerms.canCreateTask && (
                               <button onClick={() => setNewTaskForCol(col.id)}
                                 className="mx-3 mb-3 py-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-white/70 rounded-xl flex items-center justify-center gap-1">
-                                <Plus className="w-3.5 h-3.5" />Add task
+                                <Plus className="w-3.5 h-3.5" />Add module tasks
                               </button>
                             )}
                           </div>
