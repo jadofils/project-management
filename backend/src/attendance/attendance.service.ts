@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as crypto from 'crypto';
 import { AttendanceToken, AttendanceRecord, Office, User } from '../database/entities';
+import { InvalidTokenException, GeofenceException } from '../common/exceptions';
 
 @Injectable()
 export class AttendanceService {
@@ -51,7 +52,7 @@ export class AttendanceService {
       if (office?.latitude && office?.longitude) {
         const distance = this.haversine(lat, lng, Number(office.latitude), Number(office.longitude));
         if (distance > office.radius_meters) {
-          throw new BadRequestException(`Outside office geofence (${Math.round(distance)}m > ${office.radius_meters}m)`);
+          throw new GeofenceException(distance, office.radius_meters);
         }
       }
     }
