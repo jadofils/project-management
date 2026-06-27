@@ -49,6 +49,8 @@ import { AttendanceController } from './attendance/attendance.controller';
 import { AttendanceService } from './attendance/attendance.service';
 import { LeaveController } from './leave/leave.controller';
 import { LeaveService } from './leave/leave.service';
+import { ReportsController } from './reports/reports.controller';
+import { ReportsService } from './reports/reports.service';
 
 const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance];
 
@@ -91,6 +93,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     OrgController,
     AttendanceController,
     LeaveController,
+    ReportsController,
   ],
   providers: [
     AuthService,
@@ -116,6 +119,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     OrgService,
     AttendanceService,
     LeaveService,
+    ReportsService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
