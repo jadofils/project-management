@@ -617,14 +617,60 @@ export default function App() {
               )}
             </>
           ) : (
-            <div className="flex items-center justify-center py-32 text-gray-400">
-              <div className="text-center">
-                <FolderKanban className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p className="text-lg font-medium text-gray-500">Select or create a project to get started</p>
-                <button onClick={() => setShowNewProject(true)}
-                  className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500 text-white rounded-xl text-sm font-medium hover:bg-indigo-600">
-                  <Plus className="w-4 h-4" />Create a project
-                </button>
+            <div className="flex-1 overflow-auto p-4 md:p-6">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <FolderKanban className="w-5 h-5 text-indigo-500" />All Projects
+                    <span className="text-xs text-gray-400 font-normal">({projects.length})</span>
+                  </h2>
+                  <button onClick={() => setShowNewProject(true)}
+                    className="flex items-center gap-1.5 text-sm px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium">
+                    <Plus className="w-4 h-4" />New Project
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {projects.map(p => {
+                    const pTasks = tasks.filter(t => t.project_id === p.id);
+                    const doneTasks = pTasks.filter(t => t.status === 'done').length;
+                    const pct = pTasks.length > 0 ? Math.round((doneTasks / pTasks.length) * 100) : 0;
+                    const memberCount = allUsers.length; // approximate — real count needs members API
+                    return (
+                      <div key={p.id} onClick={() => selectProject(p)}
+                        className="bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all group">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.status}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${p.type === 'company' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>{p.type === 'company' ? 'Company' : 'Personal'}</span>
+                            </div>
+                            <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 truncate">{p.name}</h3>
+                            {p.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{p.description}</p>}
+                            {p.division_name && <p className="text-[10px] text-purple-400 mt-0.5">{p.division_name}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-gray-500">
+                          <span><strong>{pTasks.length}</strong> tasks</span>
+                          <span><strong>{doneTasks}</strong> done</span>
+                          <span><strong>{pct}%</strong> complete</span>
+                        </div>
+                        <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${pct === 100 ? 'bg-green-500' : 'bg-indigo-400'}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {projects.length === 0 && (
+                  <div className="text-center py-16 text-gray-400">
+                    <FolderKanban className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                    <p className="text-lg font-medium text-gray-500">No projects yet</p>
+                    <button onClick={() => setShowNewProject(true)}
+                      className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500 text-white rounded-xl text-sm font-medium hover:bg-indigo-600">
+                      <Plus className="w-4 h-4" />Create your first project
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
