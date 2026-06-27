@@ -310,7 +310,7 @@ export default function App() {
   if (!authed) return (
     <>
       <Toaster position="top-right" richColors theme={theme} />
-      <LandingPage />
+      <LandingPage onAuth={handleAuth} />
     </>
   );
 
