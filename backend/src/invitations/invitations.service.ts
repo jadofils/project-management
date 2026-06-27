@@ -6,6 +6,7 @@ import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import { ProjectInvitation, ProjectMember, Project, User } from '../database/entities';
 import { MailService } from '../mail/mail.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class InvitationsService {
@@ -17,6 +18,7 @@ export class InvitationsService {
     @InjectRepository(Project)           private projects:    Repository<Project>,
     @InjectRepository(User)              private users:       Repository<User>,
     private mail: MailService,
+    private notifs: ChatGateway,
   ) {}
 
   // ── Invite by email (PM or Admin) ─────────────────────────────────────────
@@ -70,6 +72,11 @@ export class InvitationsService {
     // Check for existing pending invitation
     const existingInv = await this.invitations.findOne({ where: { project_id: projectId, email, status: 'pending' } });
     if (existingInv) {
+      // Notify if they're online
+      const existingUserForNotif = await this.users.findOne({ where: { email } });
+      if (existingUserForNotif) {
+        this.notifs.emitNotification(existingUserForNotif.id, { type: 'invitation', title: 'Project Invitation', body: `You've been added to "${project.name}" as ${role}`, project_id: projectId });
+      }
       // Resend
       const expiresAt = existingInv.expires_at || new Date(Date.now() + 7 * 86_400_000);
       this.mail.sendProjectInviteNew({

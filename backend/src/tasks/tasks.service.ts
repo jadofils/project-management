@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Task, TaskAssignmentLog, User, Project, ProjectMember } from '../database/entities';
 import { MailService } from '../mail/mail.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 const PHASE_ROLES: Record<string, string[]> = {
   backend:        ['backend_dev'],
@@ -24,6 +25,7 @@ export class TasksService {
     @InjectRepository(Project)           private projects: Repository<Project>,
     @InjectRepository(ProjectMember)     private members: Repository<ProjectMember>,
     private mail: MailService,
+    private notifs: ChatGateway,
   ) {}
 
   async getByProject(projectId: string) {
@@ -44,6 +46,8 @@ export class TasksService {
       const logBase = { task_id: task.id, project_id: task.project_id, task_title: task.title, changed_by: userId };
       const logEntries = ids.map(uid => this.logs.create({ ...logBase, user_id: uid, action: 'assigned' } as any));
       await Promise.all(logEntries.map(e => this.logs.save(e))).catch(e => this.logger.error('Log save failed on create', e));
+      // Notify assignees
+      this.notifs.notifyUsers(ids, { type: 'task', title: 'Task Assigned', body: `You've been assigned to "${task.title}"`, project_id: task.project_id });
     }
 
     if (toNotify.length) {
@@ -100,12 +104,16 @@ export class TasksService {
     // Notifications
     if (addedIds.length) {
       const toNotify = addedIds.filter(uid => uid !== actorId);
-      if (toNotify.length) this.notifyMultiple(task, toNotify, actorId, 'task_assigned').catch(e => this.logger.error('Notify failed', e));
+      if (toNotify.length) {
+        this.notifyMultiple(task, toNotify, actorId, 'task_assigned').catch(e => this.logger.error('Notify failed', e));
+        this.notifs.notifyUsers(toNotify, { type: 'task', title: 'Task Assigned', body: `You've been assigned to "${task.title}"`, project_id: task.project_id });
+      }
     } else if (newIds.length && task.status !== prevStatus) {
       const type =
         task.status === 'done'   ? 'task_completed' :
         task.status === 'review' ? 'task_review'    : 'task_updated';
       this.notifyMultiple(task, newIds.filter(uid => uid !== actorId), actorId, type).catch(e => this.logger.error('Notify failed', e));
+      this.notifs.notifyUsers(newIds, { type: 'task', title: `Task ${task.status}`, body: `"${task.title}" moved to ${task.status}`, project_id: task.project_id });
     }
 
     return task;

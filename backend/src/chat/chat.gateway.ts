@@ -174,7 +174,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(data.project_id).emit('chat:message', serialized);
 
     // Send push notification to offline members
-    this.server.to(data.project_id).emit('notification', {
+    this.emitNotification(data.project_id, {
       type: 'chat',
       title: 'New message',
       body: `${serialized?.sender?.first_name || 'Someone'}: ${data.content.slice(0, 60)}`,
@@ -195,5 +195,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       message_id: data.message_id,
       read_by: (client as any).userId,
     });
+  }
+
+  // ── Public: send notification to specific users ──────────────────────────
+  emitNotification(roomOrUserId: string, data: { type: string; title: string; body: string; project_id?: string }) {
+    this.server.to(roomOrUserId).emit('notification', data);
+  }
+
+  notifyUsers(userIds: string[], data: { type: string; title: string; body: string; project_id?: string }) {
+    for (const uid of userIds) {
+      this.server.to(uid).emit('notification', data);
+    }
   }
 }

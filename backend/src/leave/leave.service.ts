@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LeaveType, LeaveRequest, LeaveBalance, User, EmployeeProfile } from '../database/entities';
 import { MailService } from '../mail/mail.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class LeaveService {
@@ -13,6 +14,7 @@ export class LeaveService {
     @InjectRepository(User)          private users: Repository<User>,
     @InjectRepository(EmployeeProfile) private profiles: Repository<EmployeeProfile>,
     private mail: MailService,
+    private notifs: ChatGateway,
   ) {}
 
   // ── Leave Types ────────────────────────────────────────────────────────────
@@ -124,6 +126,7 @@ export class LeaveService {
     req.approved_by = rejectedBy;
     req.approved_at = new Date();
     req.rejection_reason = reason || null;
+    this.notifs.notifyUsers([req.user_id], { type: 'system', title: 'Leave Rejected', body: `Your leave request has been rejected${reason ? `: ${reason}` : ''}` });
     return this.requests.save(req);
   }
 }
