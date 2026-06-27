@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    { "source": "/((?!sw\\.js|manifest\\.json|icon\\.svg).*)", "destination": "/index.html" }
-  ],
-  "env": {
-    "VITE_API_URL": "https://project-management-ghlc.onrender.com/api"
-  }
+    { "source": "/((?!.*\\.(js|css|svg|png|jpg|ico|json|woff2?|ttf|eot)).*)", "destination": "/index.html" }
+  ]
 }
