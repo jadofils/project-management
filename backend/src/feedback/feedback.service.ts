@@ -59,16 +59,26 @@ export class FeedbackService {
   }
 
   async addReply(feedbackId: string, userId: string, content: string) {
-    const reply = this.replies.create({ feedback_id: feedbackId, user_id: userId, content } as any);
-    const saved = await this.replies.save(reply);
-    await this.repo.increment({ id: feedbackId }, 'reply_count', 1);
-    return saved;
+    try {
+      const reply = this.replies.create({ feedback_id: feedbackId, user_id: userId, content } as any);
+      const saved = await this.replies.save(reply);
+      await this.repo.increment({ id: feedbackId }, 'reply_count', 1);
+      return saved;
+    } catch (e: any) {
+      this.logger.error('addReply failed (table may not exist yet)', e.message);
+      throw e;
+    }
   }
 
   async getReplies(feedbackId: string) {
-    return this.replies.find({
-      where: { feedback_id: feedbackId },
-      order: { created_at: 'ASC' },
-    });
+    try {
+      return this.replies.find({
+        where: { feedback_id: feedbackId },
+        order: { created_at: 'ASC' },
+      });
+    } catch (e: any) {
+      this.logger.error('getReplies failed (table may not exist yet)', e.message);
+      return [];
+    }
   }
 }
