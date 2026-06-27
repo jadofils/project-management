@@ -25,7 +25,7 @@ interface PermDef {
 
 const PERMISSIONS_BY_LEVEL: Record<string, PermDef> = {
   viewer:      { canManageMembers:false, canCreateTask:false, canEditTask:false, canDeleteTask:false, canComment:false, canTickSubtask:false, canDrag:false, canManageProject:false },
-  contributor: { canManageMembers:false, canCreateTask:false, canEditTask:false, canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false },
+  contributor: { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false },
   editor:      { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false },
   manager:     { canManageMembers:true,  canCreateTask:true,  canEditTask:true,  canDeleteTask:true,  canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:true  },
 };
@@ -48,10 +48,10 @@ const ROLE_TO_LEVEL: Record<string, string> = {
   frontend_dev:    'editor',
   db_engineer:     'editor',
   reviewer:        'editor',
-  tester:          'contributor',
-  qa_tester:       'contributor',
-  documentalist:   'contributor',
-  analyst:         'contributor',
+  tester:          'editor',
+  qa_tester:       'editor',
+  documentalist:   'editor',
+  analyst:         'editor',
 };
 
 export function computePermissions(
@@ -100,7 +100,7 @@ export function taskPermissions(
 
 export const PERMISSION_LEVELS = [
   { value: 'viewer',      label: 'Viewer',      desc: 'Read-only',                          color: 'bg-gray-100 text-gray-600' },
-  { value: 'contributor', label: 'Contributor',  desc: 'Comment, tick subtasks & drag',      color: 'bg-blue-100 text-blue-600' },
-  { value: 'editor',      label: 'Editor',       desc: 'Create & edit tasks',                color: 'bg-indigo-100 text-indigo-600' },
+  { value: 'contributor', label: 'Contributor',  desc: 'Create, edit, comment & drag tasks',  color: 'bg-blue-100 text-blue-600' },
+  { value: 'editor',      label: 'Editor',       desc: 'Full task management',                color: 'bg-indigo-100 text-indigo-600' },
   { value: 'manager',     label: 'Manager',      desc: 'Full project access',                color: 'bg-purple-100 text-purple-700' },
 ];
