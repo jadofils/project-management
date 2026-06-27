@@ -144,8 +144,9 @@ export class MailService {
     to: string; inviterName: string; projectName: string; role: string;
     token: string; expiresAt: Date; project_id?: string; sender_id?: string; invitation_id?: string;
   }): Promise<void> {
-    const appUrl  = process.env.FRONTEND_URL || 'https://project-management-nine-roan.vercel.app';
-    const link    = `${appUrl}?invite=${opts.token}`;
+    if (!process.env.FRONTEND_URL) this.logger.warn('FRONTEND_URL not set — invite link will be relative');
+    const appUrl = process.env.FRONTEND_URL || '';
+    const link   = `${appUrl}?invite=${opts.token}`;
     const expiry  = opts.expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const html = this.wrapEmail(`
       <p>Hi there,</p>
@@ -168,7 +169,7 @@ export class MailService {
     to: string; recipientName: string; inviterName: string;
     projectName: string; role: string; appUrl?: string; project_id?: string; sender_id?: string;
   }): Promise<void> {
-    const url = opts.appUrl || process.env.FRONTEND_URL || 'https://project-management-nine-roan.vercel.app';
+    const url = opts.appUrl || process.env.FRONTEND_URL || '';
     const html = this.wrapEmail(`
       <p>Hi <strong>${opts.recipientName}</strong>,</p>
       <p><strong>${opts.inviterName}</strong> has added you to the project <strong>${opts.projectName}</strong> as a <strong>${opts.role.replace(/_/g, ' ')}</strong>.</p>
@@ -184,7 +185,7 @@ export class MailService {
 
   // ── Invitation email ──────────────────────────────────────────────────────
   async sendInvitation(payload: InvitationPayload): Promise<void> {
-    const appUrl = process.env.FRONTEND_URL || 'https://project-management-nine-roan.vercel.app';
+    const appUrl = process.env.FRONTEND_URL || '';
     const subject = `You've been invited to Project Manager`;
     const passwordSection = payload.tempPassword ? `
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:20px;margin:20px 0;">
@@ -227,7 +228,7 @@ export class MailService {
 
   // ── Email builder ─────────────────────────────────────────────────────────
   private buildTaskEmail(p: TaskMailPayload): { subject: string; html: string } {
-    const appUrl = process.env.FRONTEND_URL || 'https://project-management-nine-roan.vercel.app';
+    const appUrl = process.env.FRONTEND_URL || '';
     const priorityColor = PRIORITY_COLORS[p.priority || 'medium'] || '#6366f1';
     const statusLabel = STATUS_LABELS[p.status || ''] || p.status || '';
     const phaseLabel = p.phase ? (PHASE_LABELS[p.phase] || p.phase) : '';

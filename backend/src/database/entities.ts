@@ -273,3 +273,40 @@ export class EmployeeProfile {
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true }) salary_band!: number | null;
   @CreateDateColumn() created_at!: Date;
 }
+
+// ── Attendance ─────────────────────────────────────────────────────────────────
+@Entity('offices')
+export class Office {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 200 }) name!: string;
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true }) latitude!: number | null;
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true }) longitude!: number | null;
+  @Column({ type: 'int', default: 100 }) radius_meters!: number;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('attendance_tokens')
+export class AttendanceToken {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'varchar', length: 64 }) token_hash!: string;
+  @Column({ type: 'timestamp' }) expires_at!: Date;
+  @Column({ type: 'boolean', default: false }) used!: boolean;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('attendance_records')
+export class AttendanceRecord {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'date' }) date!: string;
+  @Column({ type: 'timestamp', nullable: true }) clock_in!: Date | null;
+  @Column({ type: 'timestamp', nullable: true }) clock_out!: Date | null;
+  @Column({ type: 'varchar', length: 10, default: 'qr' }) method!: string;
+  @Column({ type: 'varchar', length: 45, nullable: true }) ip_address!: string | null;
+  @Column({ type: 'uuid', nullable: true }) office_id!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'present' }) status!: string;
+  @Column({ type: 'boolean', default: true }) verified!: boolean;
+  @Column({ type: 'text', nullable: true }) notes!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
