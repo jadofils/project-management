@@ -2,7 +2,7 @@
   "name": "project-manager",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install && npm install @nestjs/cli && npm run build",
+    "build": "cd backend && npm install && npm run build",
     "start": "cd backend && node dist/main",
     "start:prod": "cd backend && node dist/main",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
