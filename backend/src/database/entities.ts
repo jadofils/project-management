@@ -226,3 +226,50 @@ export class Subtask {
   @CreateDateColumn() created_at!: Date;
   @ManyToOne(() => Task, (t: Task) => t.subtasks, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'task_id' }) task!: Task;
 }
+
+// ── Organization Structure ─────────────────────────────────────────────────────
+@Entity('divisions')
+export class Division {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 200 }) name!: string;
+  @Column({ type: 'varchar', length: 20, unique: true }) code!: string;
+  @Column({ type: 'uuid', nullable: true }) head_user_id!: string | null;
+  @Column({ type: 'text', nullable: true }) description!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('departments')
+export class Department {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) division_id!: string;
+  @Column({ type: 'varchar', length: 200 }) name!: string;
+  @Column({ type: 'uuid', nullable: true }) head_user_id!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('job_positions')
+export class JobPosition {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 200 }) title!: string;
+  @Column({ type: 'uuid', nullable: true }) division_id!: string | null;
+  @Column({ type: 'varchar', length: 20, nullable: true }) grade!: string | null;
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true }) min_salary!: number | null;
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true }) max_salary!: number | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('employee_profiles')
+export class EmployeeProfile {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid', unique: true }) user_id!: string;
+  @Column({ type: 'uuid', nullable: true }) department_id!: string | null;
+  @Column({ type: 'uuid', nullable: true }) job_position_id!: string | null;
+  @Column({ type: 'varchar', length: 30, nullable: true }) phone!: string | null;
+  @Column({ type: 'varchar', length: 50, nullable: true }) national_id!: string | null;
+  @Column({ type: 'date', nullable: true }) date_of_birth!: string | null;
+  @Column({ type: 'date', nullable: true }) hire_date!: string | null;
+  @Column({ type: 'varchar', length: 20, nullable: true }) contract_type!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'active' }) employment_status!: string;
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true }) salary_band!: number | null;
+  @CreateDateColumn() created_at!: Date;
+}

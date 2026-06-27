@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
@@ -43,8 +43,10 @@ import { ContributionsController } from './contributions/contributions.controlle
 import { ContributionsService } from './contributions/contributions.service';
 import { ChatGateway } from './chat/chat.gateway';
 import { EmailLogsController } from './email-logs/email-logs.controller';
+import { OrgController } from './org/org.controller';
+import { OrgService } from './org/org.service';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile];
 
 @Module({
   imports: [
@@ -82,6 +84,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     InvitationsController,
     ContributionsController,
     EmailLogsController,
+    OrgController,
   ],
   providers: [
     AuthService,
@@ -104,6 +107,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     InvitationsService,
     ContributionsService,
     ChatGateway,
+    OrgService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
