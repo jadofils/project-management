@@ -23,6 +23,8 @@ import { TaskCard } from './components/TaskCard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { Sidebar } from './components/Sidebar';
+import { AttendancePanel } from './components/AttendancePanel';
+import { OrgChartPanel } from './components/OrgChartPanel';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
 type BoardTab = 'board' | 'members' | 'chat' | 'stats' | 'feedback';
@@ -113,6 +115,10 @@ export default function App() {
       setTopNav(section === 'email-logs' || section === 'invitations' ? 'comms' : section as TopNav);
     } else if (section === 'employees') {
       setTopNav('users');
+    } else if (section === 'org-chart') {
+      setTopNav('org-chart' as any);
+    } else if (section === 'attendance' || section === 'today' || section === 'records' || section === 'report') {
+      setTopNav('attendance' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
       setTopNav('projects');
       setBoardTab(section as BoardTab);
@@ -424,6 +430,14 @@ export default function App() {
       ) : topNav === 'comms' ? (
         <div className="flex-1 overflow-auto">
           <CommunicationsPanel projects={projects} />
+        </div>
+      ) : topNav === ('org-chart' as any) ? (
+        <div className="flex-1 overflow-auto">
+          <OrgChartPanel />
+        </div>
+      ) : topNav === ('attendance' as any) ? (
+        <div className="flex-1 overflow-auto">
+          <AttendancePanel />
         </div>
       ) : (
         <div className="flex-1 overflow-auto flex flex-col">

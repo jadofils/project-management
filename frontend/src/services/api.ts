@@ -393,6 +393,41 @@ export const api = {
     );
   },
   getInvitationLogs: (invitationId: string) => request<EmailLogEntry[]>(`/email-logs/invitation/${invitationId}`),
+
+  // Organization
+  getOrgChart: () => request<any[]>('/org/chart'),
+  getDivisions: () => request<any[]>('/org/divisions'),
+  createDivision: (dto: any) => request<any>('/org/divisions', { method: 'POST', body: JSON.stringify(dto) }),
+  updateDivision: (id: string, dto: any) => request<any>(`/org/divisions/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteDivision: (id: string) => request<any>(`/org/divisions/${id}`, { method: 'DELETE' }),
+  getDepartments: (divisionId?: string) => request<any[]>(`/org/departments${divisionId ? `?division_id=${divisionId}` : ''}`),
+  createDepartment: (dto: any) => request<any>('/org/departments', { method: 'POST', body: JSON.stringify(dto) }),
+  updateDepartment: (id: string, dto: any) => request<any>(`/org/departments/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteDepartment: (id: string) => request<any>(`/org/departments/${id}`, { method: 'DELETE' }),
+  getPositions: (divisionId?: string) => request<any[]>(`/org/positions${divisionId ? `?division_id=${divisionId}` : ''}`),
+  createPosition: (dto: any) => request<any>('/org/positions', { method: 'POST', body: JSON.stringify(dto) }),
+  updatePosition: (id: string, dto: any) => request<any>(`/org/positions/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deletePosition: (id: string) => request<any>(`/org/positions/${id}`, { method: 'DELETE' }),
+  getEmployees: (departmentId?: string) => request<any[]>(`/org/employees${departmentId ? `?department_id=${departmentId}` : ''}`),
+  getEmployee: (userId: string) => request<any>(`/org/employees/${userId}`),
+  upsertEmployee: (userId: string, dto: any) => request<any>(`/org/employees/${userId}`, { method: 'POST', body: JSON.stringify(dto) }),
+
+  // Attendance
+  generateAttendanceToken: () => request<{ token: string; hash: string; expires_at: string }>('/attendance/token'),
+  scanAttendance: (dto: { token: string; hash: string; scanner_ip?: string; office_id?: string; lat?: number; lng?: number }) =>
+    request<any>('/attendance/scan', { method: 'POST', body: JSON.stringify(dto) }),
+  getTodayAttendance: () => request<any>('/attendance/today'),
+  getAttendanceRecords: (params?: { user_id?: string; from?: string; to?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.user_id) qs.set('user_id', params.user_id);
+    if (params?.from) qs.set('from', params.from);
+    if (params?.to) qs.set('to', params.to);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    return request<any>(`/attendance/records?${qs.toString()}`);
+  },
+  getOffices: () => request<any[]>('/attendance/offices'),
+  createOffice: (dto: any) => request<any>('/attendance/offices', { method: 'POST', body: JSON.stringify(dto) }),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }
