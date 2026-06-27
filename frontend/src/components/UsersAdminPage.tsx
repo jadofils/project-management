@@ -6,6 +6,7 @@ import {
 import { api, type User, type Member, userInitials, userName } from '../services/api';
 import { toast } from 'sonner';
 import { MailComposer } from './MailComposer';
+import { ALL_ROLES, getRoleDef } from '../lib/roles';
 
 const SYSTEM_ROLE_COLORS: Record<string, string> = {
   admin: 'bg-purple-100 text-purple-700',
@@ -22,7 +23,7 @@ interface Props {
 
 // ── Create User Modal ─────────────────────────────────────────────────────────
 function CreateUserModal({ onCreated, onClose }: { onCreated: (u: User) => void; onClose: () => void }) {
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', system_role: 'user' });
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', system_role: 'user', project_role: '' });
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
 
@@ -34,7 +35,7 @@ function CreateUserModal({ onCreated, onClose }: { onCreated: (u: User) => void;
     setError('');
     setSaving(true);
     try {
-      const res = await api.createUser(form);
+      const res = await api.createUser({ ...form } as any);
       toast.success(`Account created — a temporary password has been sent to ${form.email}`);
       onCreated(res.user);
       onClose();
@@ -84,6 +85,21 @@ function CreateUserModal({ onCreated, onClose }: { onCreated: (u: User) => void;
               <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-3 text-gray-400 pointer-events-none" />
             </div>
           </div>
+          {form.system_role === 'user' && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">Default Project Role</label>
+              <div className="relative">
+                <select value={form.project_role} onChange={set('project_role')}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-white appearance-none pr-8">
+                  <option value="">None (assign later)</option>
+                  {ALL_ROLES.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-3 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2.5">{error}</div>
           )}
@@ -184,6 +200,7 @@ function EditUserModal({ user, onUpdated, onClose }: { user: User; onUpdated: (u
 export function UsersAdminPage({ currentUser, projectId }: Props) {
   const [users, setUsers]             = useState<User[]>([]);
   const [members, setMembers]         = useState<Member[]>([]);
+  const [allMembers, setAllMembers]   = useState<Record<string, string[]>>({});
   const [loading, setLoading]         = useState(true);
   const [showCreate, setShowCreate]   = useState(false);
   const [showMail, setShowMail]       = useState(false);
@@ -405,7 +422,7 @@ export function UsersAdminPage({ currentUser, projectId }: Props) {
               </th>
               <th className="text-left px-4 py-3 font-semibold">User</th>
               <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Email</th>
-              {projectId && <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Project Role</th>}
+              <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Project Role</th>
               <th className="text-left px-4 py-3 font-semibold">System Role</th>
               <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Status</th>
               <th className="text-left px-4 py-3 font-semibold hidden sm:table-cell">Joined</th>
@@ -425,7 +442,6 @@ export function UsersAdminPage({ currentUser, projectId }: Props) {
               const isMe    = u.id === currentUser.id;
               const name    = userName(u);
               const isSelected = selected.has(u.id);
-              const role    = projectId ? memberRole(u.id) : null;
 
               return (
                 <tr
@@ -461,13 +477,16 @@ export function UsersAdminPage({ currentUser, projectId }: Props) {
 
                   <td className="px-4 py-3 text-gray-500 hidden md:table-cell text-xs">{u.email}</td>
 
-                  {projectId && (
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      {role ? (
-                        <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium capitalize">{role}</span>
-                      ) : <span className="text-gray-300">—</span>}
-                    </td>
-                  )}
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    {(() => {
+                      const r = projectId ? memberRole(u.id) : null;
+                      return r ? (
+                        <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium capitalize">{r}</span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      );
+                    })()}
+                  </td>
 
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     {isAdmin && !isMe ? (
