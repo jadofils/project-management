@@ -86,6 +86,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { id: 'email-logs', label: 'Email Logs' },
       { id: 'invitations', label: 'Invitations' },
+      { id: 'send-mail', label: 'Send Email' },
     ],
   },
   {

@@ -151,6 +151,8 @@ export default function App() {
       setTopNav('reports' as any);
     } else if (section === 'postings' || section === 'applications') {
       setTopNav('recruitment' as any);
+    } else if (section === 'send-mail') {
+      setShowMailComposer(true);
     } else if (section === 'profile') {
       setTopNav('settings' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
@@ -449,17 +451,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              {isAdmin && (
-                <button onClick={() => setShowMailComposer(true)}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                  <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
-                </button>
-              )}
               <NotificationCenter />
-              <button onClick={() => { setTopNav('projects'); setBoardTab('feedback'); }}
-                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-                <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
-              </button>
               <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover" />
