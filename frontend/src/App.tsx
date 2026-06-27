@@ -48,7 +48,10 @@ export default function App() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [newProjectType, setNewProjectType] = useState<'individual' | 'company'>('individual');
+  const [newProjectDivisionId, setNewProjectDivisionId] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+  const [divisions, setDivisions] = useState<any[]>([]);
 
   const [newTaskForCol, setNewTaskForCol] = useState<string | null>(null);
   const [selectedTask, setSelectedTask]   = useState<Task | null>(null);
@@ -147,6 +150,7 @@ export default function App() {
     if (authed) {
       loadProjects();
       api.getUsers().then(setAllUsers).catch(() => {});
+      api.getDivisions().then(setDivisions).catch(() => {});
     }
   }, [authed, loadProjects]);
 
@@ -171,8 +175,13 @@ export default function App() {
     if (!newProjectName.trim()) return;
     setCreatingProject(true);
     try {
-      const p = await api.createProject({ name: newProjectName.trim(), description: newProjectDesc.trim() || undefined });
-      setNewProjectName(''); setNewProjectDesc(''); setShowNewProject(false);
+      const p = await api.createProject({
+        name: newProjectName.trim(),
+        description: newProjectDesc.trim() || undefined,
+        type: newProjectType,
+        division_id: newProjectType === 'company' ? newProjectDivisionId || undefined : undefined,
+      });
+      setNewProjectName(''); setNewProjectDesc(''); setNewProjectType('individual'); setNewProjectDivisionId(''); setShowNewProject(false);
       await loadProjects();
       selectProject(p);
       toast.success('Project created');
@@ -380,7 +389,7 @@ export default function App() {
                       onChange={e => { const p = projects.find(pp => pp.id === e.target.value); if (p) selectProject(p); }}
                     >
                       <option value="">Select a project…</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.type === 'company' ? ' [Company]' : ''}{p.division_name ? ` — ${p.division_name}` : ''}</option>)}
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
                   </div>
@@ -643,12 +652,35 @@ export default function App() {
               <h2 className="font-semibold text-gray-900">New Project</h2>
               <button onClick={() => setShowNewProject(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
             </div>
-            <div className="space-y-3">
+              <div className="space-y-3">
               <input value={newProjectName} onChange={e => setNewProjectName(e.target.value)}
                 placeholder="Project name" className="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 outline-none"
                 autoFocus onKeyDown={e => e.key === 'Enter' && createProject()} />
               <textarea value={newProjectDesc} onChange={e => setNewProjectDesc(e.target.value)}
                 placeholder="Description (optional)" className="w-full p-2.5 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-indigo-300 outline-none" rows={2} />
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Project Type</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setNewProjectType('individual')}
+                    className={`flex-1 py-2 text-sm rounded-xl border font-medium ${newProjectType === 'individual' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                    Individual
+                  </button>
+                  <button type="button" onClick={() => setNewProjectType('company')}
+                    className={`flex-1 py-2 text-sm rounded-xl border font-medium ${newProjectType === 'company' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                    Company
+                  </button>
+                </div>
+              </div>
+              {newProjectType === 'company' && divisions.length > 0 && (
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Division</label>
+                  <select value={newProjectDivisionId} onChange={e => setNewProjectDivisionId(e.target.value)}
+                    className="w-full text-sm border rounded-xl px-3 py-2 bg-white">
+                    <option value="">Select division...</option>
+                    {divisions.map(d => <option key={d.id} value={d.id}>{d.name} ({d.code})</option>)}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 justify-end mt-5">
               <button onClick={() => setShowNewProject(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Cancel</button>

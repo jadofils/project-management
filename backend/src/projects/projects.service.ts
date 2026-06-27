@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Project, ProjectMember, Task, User } from '../database/entities';
+import { Repository, In } from 'typeorm';
+import { Project, ProjectMember, Task, User, Division } from '../database/entities';
 
 @Injectable()
 export class ProjectsService {
@@ -10,30 +10,39 @@ export class ProjectsService {
     @InjectRepository(ProjectMember) private members: Repository<ProjectMember>,
     @InjectRepository(Task) private tasks: Repository<Task>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(Division) private divisions: Repository<Division>,
   ) {}
 
   async getMyProjects(userId: string, systemRole: string) {
-    if (systemRole === 'admin') {
-      return this.repo.find({ order: { updated_at: 'DESC' } });
-    }
-    // Show projects user owns OR is a member of
-    const memberships = await this.members.find({ where: { user_id: userId }, select: ['project_id'] });
-    const memberProjectIds = memberships.map(m => m.project_id);
+    const projects = systemRole === 'admin'
+      ? await this.repo.find({ order: { updated_at: 'DESC' } })
+      : (() => {
+          const memberships = this.members.find({ where: { user_id: userId }, select: ['project_id'] });
+          return this.repo.find({ order: { updated_at: 'DESC' } }).then(ps => {
+            return memberships.then(ms => {
+              const ids = ms.map(m => m.project_id);
+              return ps.filter(p => p.owner_id === userId || ids.includes(p.id));
+            });
+          });
+        })();
 
-    const projects = await this.repo.find({ order: { updated_at: 'DESC' } });
-    return projects.filter(p => p.owner_id === userId || memberProjectIds.includes(p.id));
+    // Attach division names
+    const divIds = [...new Set((await projects).map(p => p.division_id).filter(Boolean))] as string[];
+    const divisions = divIds.length ? await this.divisions.find({ where: { id: In(divIds) }, select: ['id', 'name'] }) : [];
+    const divMap = Object.fromEntries(divisions.map(d => [d.id, d]));
+    return (await projects).map(p => ({ ...p, division_name: p.division_id ? divMap[p.division_id]?.name || null : null }));
   }
 
   async create(userId: string, dto: any) {
-    const entity = this.repo.create({ name: dto.name, description: dto.description ?? null, owner_id: userId } as any);
-    const p: Project = await this.repo.save(entity) as unknown as Project;
-    // Auto-add creator as project_manager member
+    const entity = this.repo.create({
+      name: dto.name, description: dto.description ?? null, owner_id: userId,
+      division_id: dto.division_id || null,
+      type: dto.division_id ? 'company' : (dto.type || 'individual'),
+    } as any);
+    const p = await this.repo.save(entity) as unknown as Project;
     const memberEntity = this.members.create({
-      project_id: p.id,
-      user_id: userId,
-      role: 'project_manager',
-      roles: ['project_manager'],
-      permission_level: 'manager',
+      project_id: p.id, user_id: userId,
+      role: 'project_manager', roles: ['project_manager'], permission_level: 'manager',
     } as any);
     await this.members.save(memberEntity);
     return p;

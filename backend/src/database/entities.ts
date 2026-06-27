@@ -36,6 +36,8 @@ export class Project {
   @Column({ type: 'varchar', length: 200 }) name!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
   @Column({ type: 'uuid' }) owner_id!: string;
+  @Column({ type: 'uuid', nullable: true }) division_id!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'individual' }) type!: string;
   @Column({ type: 'varchar', length: 20, default: 'active' }) status!: string;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
