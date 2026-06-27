@@ -17,7 +17,7 @@ self.addEventListener('activate', (e: any) => {
 self.addEventListener('push', (e: any) => {
   const data = e.data?.json() || { title: 'ipfundo', body: 'New notification' };
   e.waitUntil(self.registration.showNotification(data.title, {
-    body: data.body, icon: '/icon-192.png', badge: '/icon-192.png',
+    body: data.body, icon: '/icon.svg', badge: '/icon.svg',
     vibrate: [200, 100, 200], data: { url: data.url || '/' },
   }));
 });
