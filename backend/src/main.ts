@@ -3,18 +3,20 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { seedDatabase } from './database/seeder';
+import { RequestLogInterceptor } from './common/request-log.interceptor';
 import { DataSource } from 'typeorm';
 
 const ALLOWED_ORIGINS = [
   /^http:\/\/localhost(:\d+)?$/,
   /^https:\/\/.*\.vercel\.app$/,
   /^https:\/\/.*\.onrender\.com$/,
+  'https://project-management-nine-roan.vercel.app',
 ];
 
 function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true; // allow non-browser clients (curl, Postman, server-to-server)
+  if (!origin) return true;
   const extra = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
-  return ALLOWED_ORIGINS.some(r => r.test(origin)) || extra.includes(origin);
+  return ALLOWED_ORIGINS.some(r => (typeof r === 'string' ? r === origin : r.test(origin))) || extra.includes(origin);
 }
 
 async function bootstrap() {
@@ -38,6 +40,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: false }));
+  app.useGlobalInterceptors(new RequestLogInterceptor());
 
   await app.listen(process.env.PORT || 4001);
   console.log(`✅ API running on port ${process.env.PORT || 4001}`);
