@@ -310,3 +310,43 @@ export class AttendanceRecord {
   @Column({ type: 'text', nullable: true }) notes!: string | null;
   @CreateDateColumn() created_at!: Date;
 }
+
+// ── Leave Management ───────────────────────────────────────────────────────────
+@Entity('leave_types')
+export class LeaveType {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 100 }) name!: string;
+  @Column({ type: 'int' }) days_per_year!: number;
+  @Column({ type: 'boolean', default: false }) carry_over!: boolean;
+  @Column({ type: 'boolean', default: true }) paid!: boolean;
+  @Column({ type: 'varchar', length: 7, default: '#10b981' }) color!: string;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('leave_requests')
+export class LeaveRequest {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'uuid' }) leave_type_id!: string;
+  @Column({ type: 'date' }) start_date!: string;
+  @Column({ type: 'date' }) end_date!: string;
+  @Column({ type: 'int' }) days!: number;
+  @Column({ type: 'text', nullable: true }) reason!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'pending' }) status!: string;
+  @Column({ type: 'uuid', nullable: true }) approved_by!: string | null;
+  @Column({ type: 'timestamp', nullable: true }) approved_at!: Date | null;
+  @Column({ type: 'text', nullable: true }) rejection_reason!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('leave_balances')
+export class LeaveBalance {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'uuid' }) leave_type_id!: string;
+  @Column({ type: 'int' }) year!: number;
+  @Column({ type: 'int', default: 0 }) allocated!: number;
+  @Column({ type: 'int', default: 0 }) used!: number;
+  @Column({ type: 'int', default: 0 }) remaining!: number;
+  @CreateDateColumn() created_at!: Date;
+}

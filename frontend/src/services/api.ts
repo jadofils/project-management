@@ -430,6 +430,23 @@ export const api = {
   createOffice: (dto: any) => request<any>('/attendance/offices', { method: 'POST', body: JSON.stringify(dto) }),
   callIvr: (callerId: string, digits?: string) =>
     request<string>(`/attendance/ivr?From=${encodeURIComponent(callerId)}&Digits=${digits || ''}`),
+
+  // Leave
+  getLeaveTypes: () => request<any[]>('/leave/types'),
+  createLeaveType: (dto: any) => request<any>('/leave/types', { method: 'POST', body: JSON.stringify(dto) }),
+  deleteLeaveType: (id: string) => request<any>(`/leave/types/${id}`, { method: 'DELETE' }),
+  getLeaveBalances: () => request<any[]>('/leave/balances'),
+  getLeaveRequests: (userId?: string, status?: string) => {
+    const qs = new URLSearchParams();
+    if (userId) qs.set('user_id', userId);
+    if (status) qs.set('status', status);
+    return request<any[]>(`/leave/requests?${qs.toString()}`);
+  },
+  createLeaveRequest: (dto: { leave_type_id: string; start_date: string; end_date: string; reason?: string }) =>
+    request<any>('/leave/requests', { method: 'POST', body: JSON.stringify(dto) }),
+  approveLeaveRequest: (id: string) => request<any>(`/leave/requests/${id}/approve`, { method: 'PATCH' }),
+  rejectLeaveRequest: (id: string, reason?: string) =>
+    request<any>(`/leave/requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }

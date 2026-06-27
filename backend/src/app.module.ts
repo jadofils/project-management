@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
@@ -47,8 +47,10 @@ import { OrgController } from './org/org.controller';
 import { OrgService } from './org/org.service';
 import { AttendanceController } from './attendance/attendance.controller';
 import { AttendanceService } from './attendance/attendance.service';
+import { LeaveController } from './leave/leave.controller';
+import { LeaveService } from './leave/leave.service';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance];
 
 @Module({
   imports: [
@@ -88,6 +90,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     EmailLogsController,
     OrgController,
     AttendanceController,
+    LeaveController,
   ],
   providers: [
     AuthService,
@@ -112,6 +115,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     ChatGateway,
     OrgService,
     AttendanceService,
+    LeaveService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
