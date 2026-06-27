@@ -2,16 +2,14 @@ import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   UpdateDateColumn, OneToMany, ManyToOne, JoinColumn,
 } from 'typeorm';
+import {
+  SystemRole, TaskStatus, TaskPriority, DevPhase,
+  ProjectRole, PermissionLevel, ProjectStatus,
+  InvitationStatus, FeedbackStatus, EmailType,
+  MessageType, IssueStatus, EmailStatus,
+} from '../shared/enums';
 
-// ── Enums ────────────────────────────────────────────────────────────────────
-export type ProjectRole =
-  | 'project_manager' | 'backend_dev' | 'frontend_dev'
-  | 'documentalist' | 'tester' | 'qa_tester';
-
-export type SystemRole = 'admin' | 'user';
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
-export type DevPhase = 'backend' | 'frontend' | 'documentation' | 'qa_testing' | 'data_analyst';
+export { SystemRole, TaskStatus, TaskPriority, DevPhase, ProjectRole, PermissionLevel, ProjectStatus, InvitationStatus, FeedbackStatus, EmailType, MessageType, IssueStatus, EmailStatus };
 
 // ── User ─────────────────────────────────────────────────────────────────────
 @Entity('users')
@@ -24,6 +22,7 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true }) avatar_url!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'user' }) system_role!: SystemRole;
   @Column({ type: 'boolean', default: true }) is_active!: boolean;
+  @Column({ type: 'boolean', default: false }) must_change_password!: boolean;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
   @OneToMany(() => ProjectMember, (m: ProjectMember) => m.user) memberships!: ProjectMember[];
@@ -58,9 +57,33 @@ export class Task {
   @Column({ type: 'uuid', nullable: true }) assignee_id!: string | null;
   @Column({ type: 'int', default: 0 }) sort_order!: number;
   @Column({ type: 'date', nullable: true }) due_date!: string | null;
+  @Column({ type: 'date', nullable: true }) original_due_date!: string | null;
+  @Column({ type: 'timestamp', nullable: true }) completed_at!: Date | null;
+  @Column({ type: 'uuid', nullable: true }) completed_by!: string | null;
+  @Column({ type: 'simple-json', nullable: true }) assignee_ids!: string[] | null;
+  @Column({ type: 'simple-json', nullable: true }) liked_by!: string[] | null;
+  @Column({ type: 'uuid', nullable: true }) created_by!: string | null;
+  @Column({ type: 'varchar', length: 200, nullable: true }) module!: string | null;
+  @Column({ type: 'int', default: 0 }) subtask_count!: number;
+  @Column({ type: 'int', default: 0 }) subtasks_done!: number;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
   @ManyToOne(() => Project, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'project_id' }) project!: Project;
+  @OneToMany(() => Subtask, (s: Subtask) => s.task) subtasks!: Subtask[];
+}
+
+// ── Task Assignment Log ───────────────────────────────────────────────────────
+@Entity('task_assignment_logs')
+export class TaskAssignmentLog {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) task_id!: string;
+  @Column({ type: 'uuid' }) project_id!: string;
+  @Column({ type: 'varchar', length: 300 }) task_title!: string;
+  @Column({ type: 'uuid', nullable: true }) user_id!: string | null;
+  @Column({ type: 'varchar', length: 20 }) action!: string; // 'assigned' | 'unassigned'
+  @Column({ type: 'uuid', nullable: true }) changed_by!: string | null;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @CreateDateColumn() created_at!: Date;
 }
 
 // ── Comment ───────────────────────────────────────────────────────────────────
@@ -80,6 +103,8 @@ export class ProjectMember {
   @Column({ type: 'uuid' }) project_id!: string;
   @Column({ type: 'uuid' }) user_id!: string;
   @Column({ type: 'varchar', length: 30, default: 'backend_dev' }) role!: ProjectRole;
+  @Column({ type: 'simple-json', nullable: true }) roles!: ProjectRole[] | null;
+  @Column({ type: 'varchar', length: 20, default: 'editor' }) permission_level!: string;
   @CreateDateColumn() joined_at!: Date;
   @ManyToOne(() => Project, (p: Project) => p.members, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'project_id' }) project!: Project;
   @ManyToOne(() => User, (u: User) => u.memberships, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'user_id' }) user!: User;
@@ -92,6 +117,11 @@ export class ProjectMessage {
   @Column({ type: 'uuid' }) project_id!: string;
   @Column({ type: 'uuid' }) sender_id!: string;
   @Column({ type: 'text' }) content!: string;
+  @Column({ type: 'varchar', length: 20, default: 'text' }) type!: string;
+  @Column({ type: 'varchar', length: 500, nullable: true }) file_url!: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true }) file_name!: string | null;
+  @Column({ type: 'uuid', nullable: true }) reply_to_id!: string | null;
+  @Column({ type: 'uuid', nullable: true }) task_id!: string | null;
   @CreateDateColumn() created_at!: Date;
   @ManyToOne(() => Project, (p: Project) => p.project_messages, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'project_id' }) project!: Project;
   @ManyToOne(() => User, (u: User) => u.messages, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'sender_id' }) sender!: User;
@@ -130,6 +160,7 @@ export class ErrorLog {
 export class Feedback {
   @PrimaryGeneratedColumn('uuid') id!: string;
   @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'uuid', nullable: true }) project_id!: string | null;
   @Column({ type: 'varchar', length: 300 }) title!: string;
   @Column({ type: 'text', nullable: true }) description!: string | null;
   @Column({ type: 'varchar', length: 30, default: 'other' }) category!: string;
@@ -137,6 +168,61 @@ export class Feedback {
   @Column({ type: 'text', nullable: true }) screenshot_url!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'open' }) status!: string;
   @Column({ type: 'uuid', nullable: true }) assigned_to!: string | null;
+  @Column({ type: 'int', default: 0 }) reply_count!: number;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
+}
+
+// ── Feedback Reply ────────────────────────────────────────────────────────────
+@Entity('feedback_replies')
+export class FeedbackReply {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) feedback_id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'text' }) content!: string;
+  @CreateDateColumn() created_at!: Date;
+}
+
+// ── Project Invitation ────────────────────────────────────────────────────────
+@Entity('project_invitations')
+export class ProjectInvitation {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) project_id!: string;
+  @Column({ type: 'uuid', nullable: true }) invited_by!: string | null;
+  @Column({ type: 'varchar', length: 255 }) email!: string;
+  @Column({ type: 'varchar', length: 30, default: 'backend_dev' }) role!: string;
+  @Column({ type: 'varchar', length: 20, default: 'editor' }) permission_level!: string;
+  @Column({ type: 'varchar', length: 100, unique: true }) token!: string;
+  @Column({ type: 'varchar', length: 20, default: 'pending' }) status!: string;
+  @Column({ type: 'timestamp', nullable: true }) expires_at!: Date | null;
+  @Column({ type: 'uuid', nullable: true }) accepted_by!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+// ── Email Log ─────────────────────────────────────────────────────────────────
+@Entity('email_logs')
+export class EmailLog {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 30 }) type!: string;
+  @Column({ type: 'uuid', nullable: true }) sender_id!: string | null;
+  @Column({ type: 'varchar', length: 500 }) recipient!: string;
+  @Column({ type: 'varchar', length: 300 }) subject!: string;
+  @Column({ type: 'uuid', nullable: true }) project_id!: string | null;
+  @Column({ type: 'uuid', nullable: true }) related_id!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'sent' }) status!: string;
+  @Column({ type: 'text', nullable: true }) error_message!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+// ── Subtask ───────────────────────────────────────────────────────────────────
+@Entity('subtasks')
+export class Subtask {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) task_id!: string;
+  @Column({ type: 'varchar', length: 500 }) title!: string;
+  @Column({ type: 'boolean', default: false }) completed!: boolean;
+  @Column({ type: 'uuid', nullable: true }) completed_by!: string | null;
+  @Column({ type: 'int', default: 0 }) sort_order!: number;
+  @CreateDateColumn() created_at!: Date;
+  @ManyToOne(() => Task, (t: Task) => t.subtasks, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'task_id' }) task!: Task;
 }

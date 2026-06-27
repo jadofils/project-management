@@ -28,4 +28,11 @@ export class UsersService {
     await this.users.update(id, { is_active: false });
     return this.findOne(id);
   }
+
+  async permanentDelete(id: string) {
+    const user = await this.users.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    await this.users.delete(id);
+    return { ok: true, deleted: user.email };
+  }
 }

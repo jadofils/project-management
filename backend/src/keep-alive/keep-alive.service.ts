@@ -1,10 +1,8 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
-// Render free tier sleeps after 15 minutes of inactivity.
-// Self-ping every 14 minutes keeps the server awake.
-// If a ping fails, retry every 5 seconds until it succeeds.
-const PING_EVERY_MS  = 14 * 60 * 1000; // 14 minutes
-const RETRY_EVERY_MS =  5 * 1000;       // 5 seconds
+// Ping every 5 seconds so the server never goes to sleep.
+const PING_EVERY_MS  = 5_000; // 5 seconds
+const RETRY_EVERY_MS = 5_000; // same on failure
 
 @Injectable()
 export class KeepAliveService implements OnApplicationBootstrap {
@@ -21,16 +19,16 @@ export class KeepAliveService implements OnApplicationBootstrap {
 
     this.healthUrl = `${base.replace(/\/$/, '')}/api/health`;
 
-    // Start first ping 1 minute after boot (give DB/TypeORM time to settle)
-    this.timer = setTimeout(() => this.ping(), 60_000);
-    this.log.log(`Keep-alive armed → will ping ${this.healthUrl} every 14 min`);
+    // Start first ping 10 seconds after boot (give DB/TypeORM time to settle)
+    this.timer = setTimeout(() => this.ping(), 10_000);
+    this.log.log(`Keep-alive armed → will ping ${this.healthUrl} every 5 s`);
   }
 
   private async ping() {
     try {
       const res = await fetch(this.healthUrl, { signal: AbortSignal.timeout(10_000) });
       if (res.ok) {
-        this.log.log(`Ping OK [${res.status}] — next ping in 14 min`);
+        this.log.log(`Ping OK [${res.status}] — next ping in 5 s`);
         this.timer = setTimeout(() => this.ping(), PING_EVERY_MS);
       } else {
         this.log.warn(`Ping returned ${res.status} — retrying in 5 s`);

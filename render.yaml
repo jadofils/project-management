@@ -15,18 +15,41 @@ services:
         value: production
       - key: PORT
         value: "4001"
+      # ── Database ────────────────────────────────────────────────────────────
       - key: DATABASE_URL
         sync: false
+      - key: DB_SYNCHRONIZE
+        value: "false"
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "true"
+      # ── Auth ────────────────────────────────────────────────────────────────
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRATION
+        value: "7d"
+      - key: INTER_SYSTEM_ENCRYPTION_KEY
+        sync: false
+      # ── Admin seed account ──────────────────────────────────────────────────
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+      # ── Mail (Gmail SMTP) ───────────────────────────────────────────────────
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+      # ── Frontend ────────────────────────────────────────────────────────────
+      - key: FRONTEND_URL
+        value: "https://project-management-nine-roan.vercel.app"
+      # ── Cloudinary ──────────────────────────────────────────────────────────
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: INTER_SYSTEM_ENCRYPTION_KEY
-        sync: false
+      # ── Legacy / unused ─────────────────────────────────────────────────────
       - key: BWENGE_API_URL
         sync: false
       - key: BWENGE_FRONTEND_URL

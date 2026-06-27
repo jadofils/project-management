@@ -17,9 +17,10 @@ type ToType = 'all' | 'role' | 'specific';
 interface Props {
   onClose: () => void;
   projectId?: string;
+  preselectedEmails?: string[];
 }
 
-export function MailComposer({ onClose, projectId }: Props) {
+export function MailComposer({ onClose, projectId, preselectedEmails }: Props) {
   const [toType, setToType]       = useState<ToType>('specific');
   const [selectedRole, setSelectedRole] = useState('backend_dev');
   const [allUsers, setAllUsers]   = useState<User[]>([]);
@@ -29,7 +30,14 @@ export function MailComposer({ onClose, projectId }: Props) {
   const [sending, setSending]     = useState(false);
 
   useEffect(() => {
-    api.getUsers().then(setAllUsers).catch(() => { /* silent */ });
+    api.getUsers().then(users => {
+      setAllUsers(users);
+      // Pre-select users matching provided emails
+      if (preselectedEmails?.length) {
+        const ids = users.filter(u => preselectedEmails.includes(u.email)).map(u => u.id);
+        if (ids.length) setSelectedIds(ids);
+      }
+    }).catch(() => { /* silent */ });
   }, []);
 
   const toggleUser = (id: string) => {

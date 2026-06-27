@@ -1,229 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import {
-  Plus, FolderKanban, MessageSquare, Bug, Lightbulb, Sparkles, X, Send, ImagePlus,
-  Loader2, Trash2, Calendar, LayoutDashboard, MessageCircle, ChevronDown,
-  Flag, Layers, Users, LogOut, UserCog, Mail,
+  Plus, FolderKanban, MessageSquare, Sparkles, X, Loader2, Trash2, Calendar, LayoutDashboard, MessageCircle, ChevronDown,
+  Flag, Layers, Users, LogOut, UserCog, Mail, BarChart3,
 } from 'lucide-react';
-import { api, isAuthenticated, logout, saveToken, wakeUpServer, userInitials, userName, type Project, type Task, type User } from './services/api';
+import { api, isAuthenticated, logout, wakeUpServer, userInitials, userName, type Project, type Task, type User, type Member } from './services/api';
+import { getRoleDef } from './lib/roles';
+import { COLUMNS } from './lib/constants';
+import { computePermissions, taskPermissions, type ProjectPermissions } from './lib/permissions';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { AuthPage } from './components/AuthPage';
 import { MembersPanel } from './components/MembersPanel';
-import { ChatPanel } from './components/ChatPanel';
+import { ChatRoomsPage } from './components/ChatRoomsPage';
+import { CommunicationsPanel } from './components/CommunicationsPanel';
 import { UsersAdminPage } from './components/UsersAdminPage';
+import { AdminDashboard } from './components/AdminDashboard';
+import { StatsPanel } from './components/StatsPanel';
 import { MailComposer } from './components/MailComposer';
+import { FeedbackPage } from './components/FeedbackPage';
+import { TaskCard } from './components/TaskCard';
+import { NewTaskModal } from './components/NewTaskModal';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import AcceptInvitePage from './components/AcceptInvitePage';
 
-const COLUMNS: { id: string; label: string; color: string; headerColor: string }[] = [
-  { id: 'todo',        label: 'To Do',       color: 'bg-gray-50',   headerColor: 'bg-gray-200 text-gray-700' },
-  { id: 'in_progress', label: 'In Progress', color: 'bg-blue-50',   headerColor: 'bg-blue-200 text-blue-700' },
-  { id: 'review',      label: 'Review',      color: 'bg-amber-50',  headerColor: 'bg-amber-200 text-amber-700' },
-  { id: 'done',        label: 'Done',        color: 'bg-green-50',  headerColor: 'bg-green-200 text-green-700' },
-];
+type BoardTab = 'board' | 'members' | 'chat' | 'stats' | 'feedback';
+type TopNav  = 'projects' | 'users' | 'admin' | 'comms';
 
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-100 text-red-700',
-  high:     'bg-orange-100 text-orange-700',
-  medium:   'bg-yellow-100 text-yellow-700',
-  low:      'bg-green-100 text-green-700',
-};
-
-const PHASE_LABELS: Record<string, string> = {
-  backend: 'BE', frontend: 'FE', documentation: 'Doc', qa_testing: 'QA', data_analyst: 'Data',
-};
-
-type BoardTab = 'board' | 'members' | 'chat';
-type TopNav  = 'projects' | 'users';
-
-// ── FeedbackPanel ─────────────────────────────────────────────────────────────
-function FeedbackPanel({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState('');
-  const [desc, setDesc]   = useState('');
-  const [category, setCategory] = useState('improvement');
-  const [screenshot, setScreenshot] = useState('');
-  const [sending, setSending] = useState(false);
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    for (let i = 0; i < e.clipboardData.items.length; i++) {
-      if (e.clipboardData.items[i].type.startsWith('image/')) {
-        const blob = e.clipboardData.items[i].getAsFile();
-        if (blob) { const r = new FileReader(); r.onload = () => setScreenshot(r.result as string); r.readAsDataURL(blob); }
-      }
-    }
-  };
-
-  const send = async () => {
-    if (!title.trim()) return;
-    setSending(true);
-    try {
-      await api.createFeedback({ title, description: desc, category, page_url: window.location.href, screenshot });
-      toast.success('Feedback sent!');
-      setTitle(''); setDesc(''); setScreenshot('');
-    } catch { toast.error('Failed to send feedback'); }
-    finally { setSending(false); }
-  };
-
-  const cats = [
-    { value: 'bug',         icon: Bug,         label: 'Bug' },
-    { value: 'feature',     icon: Sparkles,    label: 'Feature' },
-    { value: 'improvement', icon: Lightbulb,   label: 'Improve' },
-    { value: 'other',       icon: MessageCircle, label: 'Other' },
-  ];
-
-  return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl border-l z-50 flex flex-col" onPaste={handlePaste}>
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-        <h2 className="font-semibold flex items-center gap-2 text-gray-800">
-          <MessageSquare className="w-4 h-4 text-indigo-500" />Send Feedback
-        </h2>
-        <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-200 text-gray-500"><X className="w-4 h-4" /></button>
-      </div>
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-        <div className="grid grid-cols-4 gap-1">
-          {cats.map(c => (
-            <button key={c.value} onClick={() => setCategory(c.value)}
-              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl text-xs font-medium transition-colors ${category === c.value ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-              <c.icon className="w-4 h-4" />{c.label}
-            </button>
-          ))}
-        </div>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title..." className="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
-        <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe your feedback..." className="w-full p-2.5 border rounded-xl text-sm h-24 resize-none focus:ring-2 focus:ring-indigo-300 outline-none" rows={4} />
-        {screenshot ? (
-          <div className="relative rounded-xl overflow-hidden border">
-            <img src={screenshot} alt="Screenshot" className="w-full" />
-            <button onClick={() => setScreenshot('')} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"><X className="w-3 h-3" /></button>
-          </div>
-        ) : (
-          <div className="border-2 border-dashed rounded-xl p-5 text-center text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-400 transition-colors cursor-pointer">
-            <ImagePlus className="w-5 h-5 mx-auto mb-1" />Paste a screenshot (Ctrl+V)
-          </div>
-        )}
-      </div>
-      <div className="p-4 border-t">
-        <button onClick={send} disabled={sending || !title.trim()} className="w-full py-2.5 bg-indigo-500 text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-indigo-600">
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Send Feedback
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── TaskCard ──────────────────────────────────────────────────────────────────
-function TaskCard({ task, index, onOpen }: { task: Task; index: number; onOpen: (t: Task) => void }) {
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
-  return (
-    <Draggable key={task.id} draggableId={task.id} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
-          onClick={() => onOpen(task)}
-          className={`bg-white rounded-xl border p-3 shadow-sm hover:shadow-md transition-all cursor-pointer select-none ${snapshot.isDragging ? 'shadow-lg rotate-1 ring-2 ring-indigo-300' : ''}`}
-        >
-          <p className="text-sm font-medium text-gray-800 leading-snug">{task.title}</p>
-          {task.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.description}</p>}
-          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold capitalize ${PRIORITY_COLORS[task.priority] || 'bg-gray-100 text-gray-600'}`}>
-              {task.priority}
-            </span>
-            {task.phase && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold">
-                {PHASE_LABELS[task.phase] || task.phase}
-              </span>
-            )}
-            {task.due_date && (
-              <span className={`text-[10px] flex items-center gap-0.5 font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
-                <Calendar className="w-3 h-3" />
-                {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
-            )}
-            {task.assignee_id && (
-              <span className="ml-auto w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-                {task.assignee_id.slice(0, 2).toUpperCase()}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </Draggable>
-  );
-}
-
-// ── NewTaskModal ──────────────────────────────────────────────────────────────
-function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
-  defaultStatus: string; projectId: string; onCreated: (t: Task) => void; onClose: () => void;
-}) {
-  const [form, setForm] = useState({ status: defaultStatus, title: '', priority: 'medium', phase: '', dueDate: '', description: '' });
-  const [saving, setSaving] = useState(false);
-
-  const create = async () => {
-    if (!form.title.trim()) return;
-    setSaving(true);
-    try {
-      const task = await api.createTask({
-        project_id: projectId, title: form.title.trim(), status: form.status as Task['status'],
-        priority: form.priority, phase: form.phase || undefined,
-        due_date: form.dueDate || undefined, description: form.description.trim() || undefined,
-      });
-      onCreated(task); onClose(); toast.success('Task added');
-    } catch { toast.error('Failed to create task'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-gray-900">New Task</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-        </div>
-        <div className="space-y-3">
-          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="Task title" className="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 outline-none"
-            autoFocus onKeyDown={e => e.key === 'Enter' && create()} />
-          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="Description (optional)" className="w-full p-2.5 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-indigo-300 outline-none" rows={2} />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block flex items-center gap-1"><Layers className="w-3 h-3" />Column</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full text-sm border rounded-xl px-3 py-2 bg-white">
-                {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block flex items-center gap-1"><Flag className="w-3 h-3" />Priority</label>
-              <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="w-full text-sm border rounded-xl px-3 py-2 bg-white">
-                <option value="low">Low</option><option value="medium">Medium</option>
-                <option value="high">High</option><option value="critical">Critical</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Phase</label>
-              <select value={form.phase} onChange={e => setForm(f => ({ ...f, phase: e.target.value }))} className="w-full text-sm border rounded-xl px-3 py-2 bg-white">
-                <option value="">None</option>
-                <option value="backend">Backend</option><option value="frontend">Frontend</option>
-                <option value="documentation">Documentation</option><option value="qa_testing">QA Testing</option>
-                <option value="data_analyst">Data Analyst</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block flex items-center gap-1"><Calendar className="w-3 h-3" />Due Date</label>
-              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="w-full text-sm border rounded-xl px-3 py-2 bg-white" />
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end mt-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Cancel</button>
-          <button onClick={create} disabled={saving || !form.title.trim()} className="px-4 py-2 text-sm bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 disabled:opacity-50 flex items-center gap-2">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}Add Task
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [authed, setAuthed]         = useState(false);
   const [user, setUser]             = useState<User | null>(null);
@@ -232,6 +35,10 @@ export default function App() {
   const [tasks, setTasks]           = useState<Task[]>([]);
   const [loading, setLoading]       = useState(true);
 
+  const [allUsers, setAllUsers]         = useState<User[]>([]);
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [activeRole, setActiveRole]     = useState<string | null>(null);
+
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
@@ -239,16 +46,22 @@ export default function App() {
 
   const [newTaskForCol, setNewTaskForCol] = useState<string | null>(null);
   const [selectedTask, setSelectedTask]   = useState<Task | null>(null);
-  const [showFeedback, setShowFeedback]   = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [helpTask, setHelpTask] = useState<{ taskId: string; taskTitle: string } | null>(null);
 
   const [boardTab, setBoardTab] = useState<BoardTab>('board');
   const [topNav,   setTopNav]   = useState<TopNav>('projects');
   const [showMailComposer, setShowMailComposer] = useState(false);
 
+  // ── Invitation token from URL ─────────────────────────────────────────────
+  const [inviteToken, setInviteToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('invite');
+  });
+
   // ── Bootstrap ────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Start pinging backend immediately so it's awake by the time user logs in
     const stopPing = wakeUpServer();
 
     if (!isAuthenticated()) { setLoading(false); return stopPing; }
@@ -262,6 +75,32 @@ export default function App() {
 
   const handleAuth = (u: User) => { setUser(u); setAuthed(true); };
 
+  const handleInviteAccepted = async (projectId: string) => {
+    // Strip the invite param from URL without reloading
+    const url = new URL(window.location.href);
+    url.searchParams.delete('invite');
+    window.history.replaceState({}, '', url.toString());
+    setInviteToken(null);
+
+    // If not yet authed (new user flow), the registerAndAccept handler already saved the token
+    // and set the user — force a reload of auth state
+    if (!authed) {
+      try {
+        const u = await api.getMe();
+        setUser(u); setAuthed(true);
+      } catch { /* token already saved, just reload */ }
+    }
+
+    // Load projects and jump to the accepted project
+    try {
+      const projs = await api.getProjects();
+      setProjects(projs);
+      const p = projs.find(x => x.id === projectId);
+      if (p) selectProject(p);
+    } catch { /* */ }
+    toast.success('You have joined the project!');
+  };
+
   const handleLogout = () => { logout(); setUser(null); setAuthed(false); setProjects([]); setActiveProject(null); setTasks([]); };
 
   // ── Projects ─────────────────────────────────────────────────────────────
@@ -273,9 +112,29 @@ export default function App() {
     try { setTasks(await api.getTasks(pid)); } catch { setTasks([]); }
   }, []);
 
-  useEffect(() => { if (authed) loadProjects(); }, [authed, loadProjects]);
+  useEffect(() => {
+    if (authed) {
+      loadProjects();
+      api.getUsers().then(setAllUsers).catch(() => {});
+    }
+  }, [authed, loadProjects]);
 
-  const selectProject = (p: Project) => { setActiveProject(p); loadTasks(p.id); setBoardTab('board'); };
+  const selectProject = (p: Project) => {
+    setActiveProject(p);
+    loadTasks(p.id);
+    setBoardTab('board');
+    setCurrentMember(null);
+    setActiveRole(null);
+    // Load membership to compute permissions
+    api.getMembers(p.id)
+      .then(members => {
+        const me = members.find(m => m.user_id === user?.id) || null;
+        setCurrentMember(me);
+        const roles = me?.roles?.length ? me.roles : (me?.role ? [me.role] : []);
+        setActiveRole(roles[0] || null);
+      })
+      .catch(() => {});
+  };
 
   const createProject = async () => {
     if (!newProjectName.trim()) return;
@@ -292,7 +151,6 @@ export default function App() {
 
   const deleteProject = async () => {
     if (!activeProject) return;
-    if (!confirm(`Delete project "${activeProject.name}" and all its tasks?`)) return;
     setDeletingProject(true);
     try {
       await api.deleteProject(activeProject.id);
@@ -300,7 +158,7 @@ export default function App() {
       await loadProjects();
       toast.success('Project deleted');
     } catch { toast.error('Failed to delete project'); }
-    finally { setDeletingProject(false); }
+    finally { setDeletingProject(false); setShowDeleteConfirm(false); }
   };
 
   // ── Drag & Drop ───────────────────────────────────────────────────────────
@@ -330,11 +188,56 @@ export default function App() {
     } catch { toast.error('Failed to save order'); loadTasks(activeProject.id); }
   };
 
+  // ── Like toggle ───────────────────────────────────────────────────────────
+  const handleLike = async (task: Task) => {
+    if (!user) return;
+    const prev = task.liked_by || [];
+    const next = prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id];
+    setTasks(ts => ts.map(t => t.id === task.id ? { ...t, liked_by: next } : t));
+    try {
+      const updated = await api.toggleLike(task.id);
+      setTasks(ts => ts.map(t => t.id === task.id ? updated : t));
+    } catch {
+      setTasks(ts => ts.map(t => t.id === task.id ? task : t));
+      toast.error('Failed to update like');
+    }
+  };
+
+  // ── Quick status change from card ─────────────────────────────────────────
+  const handleQuickStatus = async (task: Task, newStatus: string) => {
+    setTasks(ts => ts.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    try {
+      const updated = await api.updateTask(task.id, { status: newStatus } as any);
+      setTasks(ts => ts.map(t => t.id === task.id ? updated : t));
+      const label = newStatus === 'in_progress' ? 'In Progress' : newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+      toast.success(`Moved to ${label}`);
+    } catch (e: any) {
+      setTasks(ts => ts.map(t => t.id === task.id ? task : t));
+      toast.error(e.message || 'Failed to update task');
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
+  );
+
+  // Invitation page — intercept before login if there's a token
+  if (inviteToken) return (
+    <>
+      <Toaster position="top-right" richColors />
+      <AcceptInvitePage
+        token={inviteToken}
+        currentUser={user}
+        onAccepted={handleInviteAccepted}
+        onLoginRedirect={() => {
+          // Clear invite token from state so auth page shows, preserve token in URL
+          setInviteToken(null);
+        }}
+      />
+    </>
   );
 
   if (!authed) return (
@@ -344,28 +247,31 @@ export default function App() {
     </>
   );
 
-  const initials = user ? userInitials(user) : 'U';
-  const name     = user ? userName(user) : 'User';
-  const isAdmin  = user?.system_role === 'admin';
+  const initials  = user ? userInitials(user) : 'U';
+  const name      = user ? userName(user) : 'User';
+  const isAdmin   = user?.system_role === 'admin';
+  const userMap   = Object.fromEntries(allUsers.map(u => [u.id, u]));
+
+  const projectPerms: ProjectPermissions = user
+    ? computePermissions(user, currentMember)
+    : { canManageMembers: false, canCreateTask: false, canEditTask: false, canDeleteTask: false, canComment: false, canTickSubtask: false, canDrag: false, canManageProject: false, isManager: false };
+
+  const currentMemberRoles = currentMember?.roles?.length
+    ? currentMember.roles
+    : (currentMember?.role ? [currentMember.role] : []);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <Toaster position="top-right" richColors />
 
-      {selectedTask && (
+      {selectedTask && user && (
         <TaskDetailModal
           task={selectedTask}
           onClose={() => setSelectedTask(null)}
           onUpdate={t => { setTasks(prev => prev.map(x => x.id === t.id ? t : x)); setSelectedTask(t); }}
           onDelete={id => { setTasks(prev => prev.filter(t => t.id !== id)); setSelectedTask(null); }}
+          permissions={taskPermissions(projectPerms, selectedTask, user.id)}
         />
-      )}
-
-      {showFeedback && (
-        <>
-          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowFeedback(false)} />
-          <FeedbackPanel onClose={() => setShowFeedback(false)} />
-        </>
       )}
 
       {showMailComposer && (
@@ -380,6 +286,16 @@ export default function App() {
           defaultStatus={newTaskForCol} projectId={activeProject.id}
           onCreated={t => setTasks(prev => [...prev, t])}
           onClose={() => setNewTaskForCol(null)}
+        />
+      )}
+
+      {showDeleteConfirm && activeProject && (
+        <DeleteConfirmModal
+          title={`Delete "${activeProject.name}"?`}
+          message="This will permanently delete the project and all its tasks. This action cannot be undone."
+          loading={deletingProject}
+          onConfirm={deleteProject}
+          onClose={() => setShowDeleteConfirm(false)}
         />
       )}
 
@@ -401,12 +317,26 @@ export default function App() {
               <FolderKanban className="w-4 h-4" />Projects
             </button>
             {isAdmin && (
-              <button
-                onClick={() => setTopNav('users')}
-                className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                <UserCog className="w-4 h-4" />Users
-              </button>
+              <>
+                <button
+                  onClick={() => setTopNav('admin')}
+                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'admin' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Layers className="w-4 h-4" />Dashboard
+                </button>
+                <button
+                  onClick={() => setTopNav('users')}
+                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <UserCog className="w-4 h-4" />Users
+                </button>
+                <button
+                  onClick={() => setTopNav('comms')}
+                  className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${topNav === 'comms' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Mail className="w-4 h-4" />Comms
+                </button>
+              </>
             )}
           </nav>
 
@@ -432,7 +362,7 @@ export default function App() {
                 <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
               </button>
               {activeProject && (
-                <button onClick={deleteProject} disabled={deletingProject} title="Delete project"
+                <button onClick={() => setShowDeleteConfirm(true)} disabled={deletingProject} title="Delete project"
                   className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                   {deletingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </button>
@@ -448,7 +378,7 @@ export default function App() {
               <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
             </button>
           )}
-          <button onClick={() => setShowFeedback(!showFeedback)}
+          <button onClick={() => { setTopNav('projects'); setBoardTab('feedback'); }}
             className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
             <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
           </button>
@@ -473,20 +403,30 @@ export default function App() {
       </header>
 
       {/* ── Main content ────────────────────────────────────────────────────── */}
-      {topNav === 'users' ? (
+      {topNav === 'admin' ? (
+        <div className="flex-1 overflow-auto">
+          <AdminDashboard currentUser={user!} />
+        </div>
+      ) : topNav === 'users' ? (
         <div className="flex-1 overflow-auto">
           <UsersAdminPage currentUser={user!} />
+        </div>
+      ) : topNav === 'comms' ? (
+        <div className="flex-1 overflow-auto">
+          <CommunicationsPanel projects={projects} />
         </div>
       ) : (
         <div className="flex-1 overflow-auto flex flex-col">
           {activeProject ? (
             <>
               {/* Board sub-tabs */}
-              <div className="bg-white border-b px-4 flex items-center gap-1">
+              <div className="bg-white border-b px-4 flex items-center gap-1 flex-wrap">
                 {([
-                  { id: 'board',   icon: LayoutDashboard, label: 'Board' },
-                  { id: 'members', icon: Users,            label: 'Members' },
-                  { id: 'chat',    icon: MessageCircle,    label: 'Chat' },
+                  { id: 'board',    icon: LayoutDashboard, label: 'Board' },
+                  { id: 'stats',    icon: BarChart3,        label: 'Stats' },
+                  { id: 'members',  icon: Users,            label: 'Members' },
+                  { id: 'chat',     icon: MessageCircle,    label: 'Chat' },
+                  { id: 'feedback', icon: MessageSquare,    label: 'Feedback' },
                 ] as { id: BoardTab; icon: React.ElementType; label: string }[]).map(t => (
                   <button key={t.id} onClick={() => setBoardTab(t.id)}
                     className={`flex items-center gap-1.5 text-sm px-3 py-2.5 font-medium border-b-2 transition-colors ${boardTab === t.id ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -496,15 +436,43 @@ export default function App() {
                 <div className="ml-3 text-sm text-gray-400 hidden sm:block py-2.5">
                   {activeProject.name}
                 </div>
+                <div className="ml-auto flex items-center gap-2 py-1.5">
+                  {/* Role switcher — only shown when user has 2+ roles in this project */}
+                  {currentMemberRoles.length > 1 && (
+                    <div className="flex items-center gap-1.5 bg-gray-50 border rounded-lg px-2 py-1">
+                      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Role:</span>
+                      {currentMemberRoles.map(r => {
+                        const rd = getRoleDef(r);
+                        return (
+                          <button key={r} onClick={() => setActiveRole(r)}
+                            className={`text-xs px-2 py-0.5 rounded-full font-semibold transition-all ${activeRole === r ? rd.badge + ' ring-1 ring-offset-1 ring-indigo-300' : 'text-gray-400 hover:bg-gray-100'}`}>
+                            {rd.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Permission level badge */}
+                  {currentMember && !projectPerms.isManager && (
+                    <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg ${
+                      currentMember.permission_level === 'viewer' ? 'bg-gray-100 text-gray-600' :
+                      currentMember.permission_level === 'contributor' ? 'bg-blue-100 text-blue-600' :
+                      'bg-indigo-100 text-indigo-600'
+                    }`}>
+                      {currentMember.permission_level}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Tab content */}
               {boardTab === 'board' && (
                 <div className="flex-1 overflow-auto p-4 md:p-6">
                   <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 min-w-[900px]">
                       {COLUMNS.map(col => {
                         const colTasks = tasks.filter(t => t.status === col.id).sort((a, b) => a.sort_order - b.sort_order);
+                        const isMember = !!currentMember || user?.system_role === 'admin';
                         return (
                           <div key={col.id} className={`${col.color} rounded-2xl flex flex-col overflow-hidden`}>
                             <div className="px-3 py-2.5 flex items-center justify-between">
@@ -512,16 +480,34 @@ export default function App() {
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.headerColor}`}>{col.label}</span>
                                 <span className="text-xs text-gray-400 font-medium">{colTasks.length}</span>
                               </div>
-                              <button onClick={() => setNewTaskForCol(col.id)}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-white/70">
-                                <Plus className="w-4 h-4" />
-                              </button>
+                              {col.id === 'todo' && projectPerms.canCreateTask && (
+                                <button onClick={() => setNewTaskForCol(col.id)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-white/70">
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                             <Droppable droppableId={col.id}>
                               {(provided, snapshot) => (
                                 <div ref={provided.innerRef} {...provided.droppableProps}
                                   className={`flex-1 px-3 pb-3 space-y-2 min-h-[120px] transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50/60' : ''}`}>
-                                  {colTasks.map((task, i) => <TaskCard key={task.id} task={task} index={i} onOpen={setSelectedTask} />)}
+                                  {colTasks.map((task, i) => (
+                                    <TaskCard
+                                      key={task.id} task={task} index={i}
+                                      onOpen={setSelectedTask} userMap={userMap}
+                                      isDragDisabled={!projectPerms.canDrag}
+                                      currentUserId={user?.id}
+                                      isMember={isMember}
+                                      canConfirm={projectPerms.isManager}
+                                      canEditTask={projectPerms.canEditTask}
+                                      onLike={handleLike}
+                                      onQuickStatus={handleQuickStatus}
+                                      onAskHelp={(task) => {
+                                        setHelpTask({ taskId: task.id, taskTitle: task.title });
+                                        setBoardTab('chat');
+                                      }}
+                                    />
+                                  ))}
                                   {provided.placeholder}
                                   {colTasks.length === 0 && !snapshot.isDraggingOver && (
                                     <div className="text-center py-6 text-xs text-gray-300">
@@ -531,10 +517,12 @@ export default function App() {
                                 </div>
                               )}
                             </Droppable>
-                            <button onClick={() => setNewTaskForCol(col.id)}
-                              className="mx-3 mb-3 py-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-white/70 rounded-xl flex items-center justify-center gap-1">
-                              <Plus className="w-3.5 h-3.5" />Add task
-                            </button>
+                            {col.id === 'todo' && projectPerms.canCreateTask && (
+                              <button onClick={() => setNewTaskForCol(col.id)}
+                                className="mx-3 mb-3 py-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-white/70 rounded-xl flex items-center justify-center gap-1">
+                                <Plus className="w-3.5 h-3.5" />Add task
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -543,15 +531,47 @@ export default function App() {
                 </div>
               )}
 
+              {boardTab === 'stats' && user && (
+                <div className="flex-1 overflow-auto">
+                  <StatsPanel
+                    projectId={activeProject.id}
+                    currentUser={user}
+                    isManager={projectPerms.isManager}
+                    userMap={userMap}
+                  />
+                </div>
+              )}
+
               {boardTab === 'members' && (
                 <div className="flex-1 overflow-auto">
-                  <MembersPanel projectId={activeProject.id} currentUserId={user!.id} />
+                  <MembersPanel
+                    projectId={activeProject.id}
+                    currentUserId={user!.id}
+                    isManager={projectPerms.isManager}
+                  />
                 </div>
               )}
 
               {boardTab === 'chat' && user && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <ChatPanel projectId={activeProject.id} currentUser={user} />
+                <div className="flex-1 overflow-hidden">
+                  <ChatRoomsPage
+                    currentUser={user}
+                    allUsers={allUsers}
+                    projects={projects}
+                    activeProject={activeProject}
+                    helpTask={helpTask}
+                    clearHelpTask={() => setHelpTask(null)}
+                  />
+                </div>
+              )}
+
+              {boardTab === 'feedback' && user && (
+                <div className="flex-1 overflow-auto">
+                  <FeedbackPage
+                    projectId={activeProject.id}
+                    currentUser={user}
+                    allUsers={allUsers}
+                  />
                 </div>
               )}
             </>

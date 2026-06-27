@@ -2,13 +2,14 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { AdminOrPMGuard } from './auth/jwt.guard';
+import { RolesGuard } from './auth/roles.guard';
 import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
 import { ProjectsController } from './projects/projects.controller';
@@ -31,8 +32,19 @@ import { MailService } from './mail/mail.service';
 import { MailController } from './mail/mail.controller';
 import { HealthController } from './health/health.controller';
 import { KeepAliveService } from './keep-alive/keep-alive.service';
+import { SubtasksController } from './subtasks/subtasks.controller';
+import { SubtasksService } from './subtasks/subtasks.service';
+import { StatsController } from './stats/stats.controller';
+import { StatsService } from './stats/stats.service';
+import { AdminController } from './admin/admin.controller';
+import { InvitationsController } from './invitations/invitations.controller';
+import { InvitationsService } from './invitations/invitations.service';
+import { ContributionsController } from './contributions/contributions.controller';
+import { ContributionsService } from './contributions/contributions.service';
+import { ChatGateway } from './chat/chat.gateway';
+import { EmailLogsController } from './email-logs/email-logs.controller';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, ProjectMember, ProjectMessage];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog];
 
 @Module({
   imports: [
@@ -40,10 +52,14 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true'
+        ? { rejectUnauthorized: true }
+        : process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false'
+          ? { rejectUnauthorized: false }
+          : { rejectUnauthorized: process.env.NODE_ENV !== 'production' },
       entities: ENTITIES,
-      synchronize: true,
-      logging: false,
+      synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      logging: process.env.DB_LOGGING === 'true',
     }),
     TypeOrmModule.forFeature(ENTITIES),
   ],
@@ -60,6 +76,12 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     MessagesController,
     MailController,
     HealthController,
+    SubtasksController,
+    StatsController,
+    AdminController,
+    InvitationsController,
+    ContributionsController,
+    EmailLogsController,
   ],
   providers: [
     AuthService,
@@ -75,7 +97,13 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, User, Proje
     MessagesService,
     MailService,
     AdminOrPMGuard,
+    RolesGuard,
     KeepAliveService,
+    SubtasksService,
+    StatsService,
+    InvitationsService,
+    ContributionsService,
+    ChatGateway,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

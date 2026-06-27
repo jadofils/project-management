@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from '../database/entities';
@@ -6,6 +6,8 @@ import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class CommentsService {
+  private readonly logger = new Logger(CommentsService.name);
+
   constructor(
     @InjectRepository(Comment) private repo: Repository<Comment>,
     private tasks: TasksService,
@@ -17,8 +19,7 @@ export class CommentsService {
 
   async create(userId: string, taskId: string, content: string) {
     const comment = await this.repo.save(this.repo.create({ task_id: taskId, user_id: userId, content } as any));
-    // Notify assignee about comment (fire and forget)
-    this.tasks.notifyComment(taskId, userId, content).catch(() => { /* silent */ });
+    this.tasks.notifyComment(taskId, userId, content).catch(e => this.logger.error('Comment notify failed', e));
     return comment;
   }
 

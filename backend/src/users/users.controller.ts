@@ -20,4 +20,8 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AdminGuard)
   deactivate(@Param('id') id: string) { return this.svc.deactivate(id); }
+
+  @Delete(':id/permanent')
+  @UseGuards(AdminGuard)
+  permanentDelete(@Param('id') id: string) { return this.svc.permanentDelete(id); }
 }

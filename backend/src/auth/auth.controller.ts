@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard, AdminOrPMGuard } from './jwt.guard';
+import { SystemRole } from '../shared/enums';
 
 @Controller('auth')
 export class AuthController {
@@ -11,7 +12,7 @@ export class AuthController {
   @UseGuards(AdminOrPMGuard)
   createUser(
     @Req() req: any,
-    @Body() dto: { email: string; password: string; first_name: string; last_name: string; system_role?: string },
+    @Body() dto: { email: string; first_name: string; last_name: string; system_role?: SystemRole },
   ) {
     return this.svc.createUser(req.user.sub, dto);
   }

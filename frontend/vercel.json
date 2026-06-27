@@ -1,11 +1,8 @@
 {
-  "framework": "vite",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "build": {
-    "env": {
-      "VITE_API_URL": "https://project-manager-api.onrender.com/api"
-    }
+  "env": {
+    "VITE_API_URL": "https://project-manager-api.onrender.com/api"
   }
 }

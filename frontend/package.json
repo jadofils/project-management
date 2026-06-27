@@ -6,14 +6,17 @@
   "scripts": {
     "dev": "vite --port 4000",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 50",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^16.6.0",
+    "lucide-react": "^0.400.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^6.26.0",
-    "@hello-pangea/dnd": "^16.6.0",
-    "lucide-react": "^0.400.0",
+    "socket.io-client": "^4.8.3",
     "sonner": "^1.5.0"
   },
   "devDependencies": {

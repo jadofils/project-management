@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { seedDatabase } from './database/seeder';
 import { DataSource } from 'typeorm';
@@ -18,6 +19,8 @@ function isOriginAllowed(origin: string | undefined): boolean {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(helmet());
 
   const handleCorsOrigin = (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
     cb(null, isOriginAllowed(origin));

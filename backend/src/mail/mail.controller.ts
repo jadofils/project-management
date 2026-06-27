@@ -33,7 +33,7 @@ export class MailController {
 
     // Send to each individually so personalisation is possible later
     await Promise.all(
-      emails.map(to => this.mail.sendCustom({ to, subject: body.subject, body: body.message, senderName }))
+      emails.map(to => this.mail.sendCustom({ to, subject: body.subject, body: body.message, senderName, project_id: (body.to as any).project_id }, req.user.sub))
     );
 
     return { sent: emails.length, recipients: emails };
