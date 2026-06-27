@@ -31,6 +31,8 @@ import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
 import { RecruitmentPanel } from './components/RecruitmentPanel';
 import { ProfileSettings } from './components/ProfileSettings';
+import { NotificationCenter } from './components/NotificationCenter';
+import { LandingPage } from './components/LandingPage';
 import { ForbiddenPage } from './components/ExceptionPages';
 import AcceptInvitePage from './components/AcceptInvitePage';
 
@@ -301,7 +303,7 @@ export default function App() {
   if (!authed) return (
     <>
       <Toaster position="top-right" richColors theme={theme} />
-      <AuthPage onAuth={handleAuth} />
+      <LandingPage />
     </>
   );
 
@@ -444,10 +446,11 @@ export default function App() {
             <div className="flex items-center gap-2">
               {isAdmin && (
                 <button onClick={() => setShowMailComposer(true)}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                  className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Mail className="w-4 h-4" /><span className="hidden sm:block">Send Email</span>
                 </button>
               )}
+              <NotificationCenter />
               <button onClick={() => { setTopNav('projects'); setBoardTab('feedback'); }}
                 className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-gray-100">
                 <MessageSquare className="w-4 h-4" /><span className="hidden sm:block">Feedback</span>
