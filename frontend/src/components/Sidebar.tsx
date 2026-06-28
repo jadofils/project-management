@@ -1,4 +1,4 @@
-import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User, Download, Share2 } from 'lucide-react';
+import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User, Download, Share2, PenTool } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -88,6 +88,15 @@ const NAV_ITEMS: NavItem[] = [
       { id: 'email-logs', label: 'Email Logs' },
       { id: 'invitations', label: 'Invitations' },
       { id: 'send-mail', label: 'Send Email' },
+    ],
+  },
+  {
+    id: 'content',
+    label: 'Content',
+    icon: PenTool,
+    children: [
+      { id: 'content-drafts', label: 'Drafts' },
+      { id: 'content-categories', label: 'Categories' },
     ],
   },
   {

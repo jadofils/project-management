@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
@@ -53,8 +53,10 @@ import { ReportsController } from './reports/reports.controller';
 import { ReportsService } from './reports/reports.service';
 import { RecruitmentController } from './recruitment/recruitment.controller';
 import { RecruitmentService } from './recruitment/recruitment.service';
+import { ContentController } from './content/content.controller';
+import { ContentService } from './content/content.service';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword];
 
 @Module({
   imports: [
@@ -97,6 +99,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     LeaveController,
     ReportsController,
     RecruitmentController,
+    ContentController,
   ],
   providers: [
     AuthService,
@@ -124,6 +127,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     LeaveService,
     ReportsService,
     RecruitmentService,
+    ContentService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

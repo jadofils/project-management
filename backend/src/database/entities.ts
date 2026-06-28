@@ -384,3 +384,47 @@ export class Application {
   @Column({ type: 'text', nullable: true }) notes!: string | null;
   @CreateDateColumn() created_at!: Date;
 }
+
+// ── Content Creation ──────────────────────────────────────────────────────────
+@Entity('content_categories')
+export class ContentCategory {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 100 }) name!: string;
+  @Column({ type: 'varchar', length: 50, unique: true }) slug!: string;
+  @Column({ type: 'varchar', length: 50 }) icon!: string;
+  @Column({ type: 'varchar', length: 7 }) color!: string;
+  @Column({ type: 'text', nullable: true }) description!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('content_templates')
+export class ContentTemplate {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) category_id!: string;
+  @Column({ type: 'varchar', length: 200 }) name!: string;
+  @Column({ type: 'varchar', length: 20 }) format!: string;
+  @Column({ type: 'text', nullable: true }) preview!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('content_drafts')
+export class ContentDraft {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'uuid' }) category_id!: string;
+  @Column({ type: 'varchar', length: 300 }) title!: string;
+  @Column({ type: 'text' }) body!: string;
+  @Column({ type: 'varchar', length: 10, default: 'en' }) language!: string;
+  @Column({ type: 'varchar', length: 30, nullable: true }) background!: string | null;
+  @Column({ type: 'varchar', length: 20, default: 'draft' }) status!: string;
+  @Column({ type: 'uuid', nullable: true }) project_id!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+@Entity('content_passwords')
+export class ContentPassword {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar', length: 255 }) password_hash!: string;
+  @Column({ type: 'uuid' }) updated_by!: string;
+  @CreateDateColumn() created_at!: Date;
+}

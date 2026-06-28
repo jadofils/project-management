@@ -458,6 +458,18 @@ export const api = {
   createApplication: (dto: any) => request<any>('/recruitment/applications', { method: 'POST', body: JSON.stringify(dto) }),
   updateApplication: (id: string, dto: any) => request<any>(`/recruitment/applications/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deleteApplication: (id: string) => request<any>(`/recruitment/applications/${id}`, { method: 'DELETE' }),
+
+  // Content Creation
+  getContentCategories: () => request<any[]>('/content/categories'),
+  createContentCategory: (dto: any) => request<any>('/content/categories', { method: 'POST', body: JSON.stringify(dto) }),
+  getContentTemplates: (categoryId?: string) => request<any[]>(`/content/templates${categoryId ? `?category_id=${categoryId}` : ''}`),
+  getContentDrafts: (categoryId?: string) => request<any[]>(`/content/drafts${categoryId ? `?category_id=${categoryId}` : ''}`),
+  createContentDraft: (dto: any) => request<any>('/content/drafts', { method: 'POST', body: JSON.stringify(dto) }),
+  updateContentDraft: (id: string, dto: any) => request<any>(`/content/drafts/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteContentDraft: (id: string) => request<any>(`/content/drafts/${id}`, { method: 'DELETE' }),
+  publishContentDraft: (id: string, projectId: string) => request<any>(`/content/drafts/${id}/publish`, { method: 'POST', body: JSON.stringify({ project_id: projectId }) }),
+  verifyContentPassword: (password: string) => request<any>('/content/verify-password', { method: 'POST', body: JSON.stringify({ password }) }),
+  setContentPassword: (password: string) => request<any>('/content/set-password', { method: 'POST', body: JSON.stringify({ password }) }),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }

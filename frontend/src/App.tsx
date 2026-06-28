@@ -31,6 +31,7 @@ import { OrgChartPanel } from './components/OrgChartPanel';
 import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
 import { RecruitmentPanel } from './components/RecruitmentPanel';
+import { ContentPanel } from './components/ContentPanel';
 import { ProfileSettings } from './components/ProfileSettings';
 import { NotificationCenter } from './components/NotificationCenter';
 import { LandingPage } from './components/LandingPage';
@@ -153,6 +154,8 @@ export default function App() {
       setTopNav('recruitment' as any);
     } else if (section === 'send-mail') {
       setShowMailComposer(true);
+    } else if (section === 'content-drafts' || section === 'content-categories') {
+      setTopNav('content' as any);
     } else if (section === 'profile') {
       setTopNav('settings' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
@@ -504,6 +507,10 @@ export default function App() {
       ) : topNav === ('recruitment' as any) ? (
         <div className="flex-1 overflow-auto">
           {isAdmin ? <RecruitmentPanel /> : <ForbiddenPage />}
+        </div>
+      ) : topNav === ('content' as any) ? (
+        <div className="flex-1 overflow-auto">
+          <ContentPanel projects={projects} />
         </div>
       ) : topNav === ('settings' as any) ? (
         <div className="flex-1 overflow-auto">
