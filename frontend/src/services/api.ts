@@ -462,18 +462,28 @@ export const api = {
   // Content Creation
   getContentCategories: () => request<any[]>('/content/categories'),
   createContentCategory: (dto: any) => request<any>('/content/categories', { method: 'POST', body: JSON.stringify(dto) }),
+  updateContentCategory: (id: string, dto: any) => request<any>(`/content/categories/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteContentCategory: (id: string) => request<any>(`/content/categories/${id}`, { method: 'DELETE' }),
   getContentTemplates: (categoryId?: string) => request<any[]>(`/content/templates${categoryId ? `?category_id=${categoryId}` : ''}`),
   getContentDrafts: (categoryId?: string) => request<any[]>(`/content/drafts${categoryId ? `?category_id=${categoryId}` : ''}`),
   createContentDraft: (dto: any) => request<any>('/content/drafts', { method: 'POST', body: JSON.stringify(dto) }),
   bulkCreateContentDrafts: (items: any[]) => request<any>('/content/drafts/bulk', { method: 'POST', body: JSON.stringify({ items }) }),
   updateContentDraft: (id: string, dto: any) => request<any>(`/content/drafts/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deleteContentDraft: (id: string) => request<any>(`/content/drafts/${id}`, { method: 'DELETE' }),
-  publishContentDraft: (id: string, projectId: string) => request<any>(`/content/drafts/${id}/publish`, { method: 'POST', body: JSON.stringify({ project_id: projectId }) }),
+  publishContentDraft: (id: string, projectId: string, scheduledAt?: string) =>
+    request<any>(`/content/drafts/${id}/publish`, { method: 'POST', body: JSON.stringify({ project_id: projectId, scheduled_at: scheduledAt }) }),
   verifyContentPassword: (password: string) => request<any>('/content/verify-password', { method: 'POST', body: JSON.stringify({ password }) }),
   setContentPassword: (password: string) => request<any>('/content/set-password', { method: 'POST', body: JSON.stringify({ password }) }),
 
   // AI Content
-  aiBatchGenerate: (categoryId: string, count = 10) => request<any[]>(`/content/ai/batch`, { method: 'POST', body: JSON.stringify({ category_id: categoryId, count }) }),
+  aiBatchGenerate: (categoryId: string, count = 10, customTopic?: string, contentType = 'post', persona = 'Universal') =>
+    request<any[]>('/content/ai/batch', { method: 'POST', body: JSON.stringify({ category_id: categoryId, count, custom_topic: customTopic, content_type: contentType, persona }) }),
+  aiFormatContent: (title: string, body: string, platform: string) =>
+    request<any>('/content/ai/format', { method: 'POST', body: JSON.stringify({ title, body, platform }) }),
+  aiGenerateVariants: (title: string, body: string) =>
+    request<any[]>('/content/ai/variants', { method: 'POST', body: JSON.stringify({ title, body }) }),
+  aiAnalyzePattern: (post: string) =>
+    request<any>('/content/ai/analyze-pattern', { method: 'POST', body: JSON.stringify({ post }) }),
   aiAnalyzeContent: () => request<any>('/content/ai/analyze'),
 };
 

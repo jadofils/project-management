@@ -417,6 +417,12 @@ export class ContentDraft {
   @Column({ type: 'varchar', length: 10, default: 'en' }) language!: string;
   @Column({ type: 'varchar', length: 30, nullable: true }) background!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'draft' }) status!: string;
+  @Column({ type: 'varchar', length: 20, default: 'post' }) content_type!: string;
+  @Column({ type: 'simple-json', nullable: true }) hashtags!: string[] | null;
+  @Column({ type: 'varchar', length: 60, nullable: true }) best_platform!: string | null;
+  @Column({ type: 'int', nullable: true }) engagement_score!: number | null;
+  @Column({ type: 'varchar', length: 50, nullable: true }) persona!: string | null;
+  @Column({ type: 'timestamp', nullable: true }) scheduled_at!: Date | null;
   @Column({ type: 'uuid', nullable: true }) project_id!: string | null;
   @CreateDateColumn() created_at!: Date;
 }

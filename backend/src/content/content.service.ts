@@ -15,6 +15,7 @@ export class ContentService {
 
   async getCategories() { return this.categories.find({ order: { name: 'ASC' } }); }
   async createCategory(dto: any) { return this.categories.save(this.categories.create(dto)); }
+  async updateCategory(id: string, dto: any) { await this.categories.update(id, dto); return this.categories.findOne({ where: { id } }); }
   async getTemplates(categoryId?: string) {
     const where: any = {};
     if (categoryId) where.category_id = categoryId;
@@ -22,10 +23,11 @@ export class ContentService {
   }
   async createTemplate(dto: any) { return this.templates.save(this.templates.create(dto)); }
 
-  async getDrafts(userId?: string, categoryId?: string) {
+  async getDrafts(userId?: string, categoryId?: string, status?: string) {
     const where: any = {};
     if (userId) where.user_id = userId;
     if (categoryId) where.category_id = categoryId;
+    if (status) where.status = status;
     return this.drafts.find({ where, order: { created_at: 'DESC' } });
   }
 
@@ -44,9 +46,13 @@ export class ContentService {
   }
 
   async deleteDraft(id: string) { await this.drafts.delete(id); return { ok: true }; }
+  async deleteCategory(id: string) { await this.categories.delete(id); return { ok: true }; }
 
-  async publishDraft(id: string, projectId: string) {
-    await this.drafts.update(id, { status: 'published', project_id: projectId } as any);
+  async publishDraft(id: string, projectId: string, scheduledAt?: string) {
+    const status = scheduledAt ? 'scheduled' : 'published';
+    const update: any = { status, project_id: projectId };
+    if (scheduledAt) update.scheduled_at = new Date(scheduledAt);
+    await this.drafts.update(id, update);
     return this.drafts.findOne({ where: { id } });
   }
 

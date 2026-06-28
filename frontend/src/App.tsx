@@ -154,7 +154,7 @@ export default function App() {
       setTopNav('recruitment' as any);
     } else if (section === 'send-mail') {
       setShowMailComposer(true);
-    } else if (section === 'content-drafts' || section === 'content-categories') {
+    } else if (['content-generate', 'content-drafts', 'content-published', 'content-categories', 'content-analytics'].includes(section)) {
       setTopNav('content' as any);
     } else if (section === 'profile') {
       setTopNav('settings' as any);
@@ -510,7 +510,7 @@ export default function App() {
         </div>
       ) : topNav === ('content' as any) ? (
         <div className="flex-1 overflow-auto">
-          <ContentPanel projects={projects} />
+          <ContentPanel projects={projects} section={sidebarSection} isAdmin={isAdmin} />
         </div>
       ) : topNav === ('settings' as any) ? (
         <div className="flex-1 overflow-auto">

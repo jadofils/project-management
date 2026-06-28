@@ -95,8 +95,11 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Content',
     icon: PenTool,
     children: [
-      { id: 'content-drafts', label: 'Drafts' },
+      { id: 'content-generate',   label: 'AI Generate' },
+      { id: 'content-drafts',     label: 'Drafts' },
+      { id: 'content-published',  label: 'Published' },
       { id: 'content-categories', label: 'Categories' },
+      { id: 'content-analytics',  label: 'Analytics' },
     ],
   },
   {
@@ -169,7 +172,9 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
               <button
                 onClick={() => onNavigate(group.children?.[0]?.id || group.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -185,7 +190,9 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
                       key={child.id}
                       onClick={() => onNavigate(child.id)}
                       className={`w-full text-left px-2 py-1 text-xs rounded-lg transition-colors ${
-                        activeSection === child.id ? 'bg-indigo-100 text-indigo-700 font-medium' : 'text-gray-500 hover:bg-gray-50'
+                        activeSection === child.id
+                          ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     >
                       {child.label}
