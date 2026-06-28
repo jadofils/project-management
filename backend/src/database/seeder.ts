@@ -1,6 +1,17 @@
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User } from './entities';
+import { User, ContentCategory } from './entities';
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Funny',       slug: 'funny',      icon: '😂', color: '#f59e0b', description: 'Memes, relatable humor, and jokes' },
+  { name: 'Wise',        slug: 'wise',       icon: '🧠', color: '#6366f1', description: 'Philosophy, paradoxes, and deep thoughts' },
+  { name: 'Guidance',    slug: 'guidance',   icon: '💡', color: '#10b981', description: 'Motivational quotes and life hacks' },
+  { name: 'Love',        slug: 'love',       icon: '❤️', color: '#ef4444', description: 'Romance, friendship, and family' },
+  { name: 'Science',     slug: 'science',    icon: '🔬', color: '#3b82f6', description: 'Experiments, tech humor, and discoveries' },
+  { name: 'Psychology',  slug: 'psychology', icon: '🧩', color: '#8b5cf6', description: 'Mind tricks, behavior, and mental health' },
+  { name: 'Sociology',   slug: 'sociology',  icon: '🌍', color: '#06b6d4', description: 'Culture, society, and human behavior' },
+  { name: 'Myths',       slug: 'myths',      icon: '🔮', color: '#ec4899', description: 'Spiritual, cultural, and mythological' },
+];
 
 export async function seedDatabase(dataSource: DataSource) {
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -39,4 +50,15 @@ export async function seedDatabase(dataSource: DataSource) {
     );
     console.log('[seeder] ✅ Admin password refreshed');
   }
+}
+
+export async function seedContentCategories(dataSource: DataSource) {
+  const repo = dataSource.getRepository(ContentCategory);
+  const existing = await repo.count();
+  if (existing > 0) return;
+  console.log('[seeder] Seeding content categories...');
+  for (const cat of DEFAULT_CATEGORIES) {
+    await repo.save(repo.create(cat as any));
+  }
+  console.log(`[seeder] ✅ ${DEFAULT_CATEGORIES.length} content categories created`);
 }

@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { seedDatabase } from './database/seeder';
+import { seedDatabase, seedContentCategories } from './database/seeder';
 import { RequestLogInterceptor } from './common/request-log.interceptor';
 import { DataSource } from 'typeorm';
 
@@ -49,6 +49,7 @@ async function bootstrap() {
   try {
     const dataSource = app.get(DataSource);
     await seedDatabase(dataSource);
+    await seedContentCategories(dataSource);
   } catch (e) {
     console.error('[seeder] Failed:', e);
   }
