@@ -55,6 +55,7 @@ import { RecruitmentController } from './recruitment/recruitment.controller';
 import { RecruitmentService } from './recruitment/recruitment.service';
 import { ContentController } from './content/content.controller';
 import { ContentService } from './content/content.service';
+import { ContentAIService } from './content/content-ai.service';
 
 const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword];
 
@@ -128,6 +129,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     ReportsService,
     RecruitmentService,
     ContentService,
+    ContentAIService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

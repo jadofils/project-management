@@ -470,6 +470,14 @@ export const api = {
   publishContentDraft: (id: string, projectId: string) => request<any>(`/content/drafts/${id}/publish`, { method: 'POST', body: JSON.stringify({ project_id: projectId }) }),
   verifyContentPassword: (password: string) => request<any>('/content/verify-password', { method: 'POST', body: JSON.stringify({ password }) }),
   setContentPassword: (password: string) => request<any>('/content/set-password', { method: 'POST', body: JSON.stringify({ password }) }),
+
+  // AI Content
+  aiGenerateTitle: (categoryId: string, topic?: string) => request<{ titles: string[] }>('/content/ai/generate-title', { method: 'POST', body: JSON.stringify({ category_id: categoryId, topic }) }),
+  aiGenerateBody: (categoryId: string, title: string, language?: string) => request<{ body: string }>('/content/ai/generate-body', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, language }) }),
+  aiGenerateImage: (categoryId: string, title: string, body: string) => request<{ imagePrompt: string }>('/content/ai/generate-image', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, body }) }),
+  aiGenerateInfographic: (categoryId: string, title: string, body: string) => request<any>('/content/ai/generate-infographic', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, body }) }),
+  aiGenerateFromIdea: (categoryId: string, idea: string, language?: string) => request<any>('/content/ai/generate-from-idea', { method: 'POST', body: JSON.stringify({ category_id: categoryId, idea, language }) }),
+  aiAnalyzeContent: () => request<any>('/content/ai/analyze'),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }
