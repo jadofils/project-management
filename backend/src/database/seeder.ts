@@ -3,14 +3,14 @@ import * as bcrypt from 'bcryptjs';
 import { User, ContentCategory } from './entities';
 
 const DEFAULT_CATEGORIES = [
-  { name: 'Funny',       slug: 'funny',      icon: '😂', color: '#f59e0b', description: 'Memes, relatable humor, and jokes' },
-  { name: 'Wise',        slug: 'wise',       icon: '🧠', color: '#6366f1', description: 'Philosophy, paradoxes, and deep thoughts' },
-  { name: 'Guidance',    slug: 'guidance',   icon: '💡', color: '#10b981', description: 'Motivational quotes and life hacks' },
-  { name: 'Love',        slug: 'love',       icon: '❤️', color: '#ef4444', description: 'Romance, friendship, and family' },
-  { name: 'Science',     slug: 'science',    icon: '🔬', color: '#3b82f6', description: 'Experiments, tech humor, and discoveries' },
-  { name: 'Psychology',  slug: 'psychology', icon: '🧩', color: '#8b5cf6', description: 'Mind tricks, behavior, and mental health' },
-  { name: 'Sociology',   slug: 'sociology',  icon: '🌍', color: '#06b6d4', description: 'Culture, society, and human behavior' },
-  { name: 'Myths',       slug: 'myths',      icon: '🔮', color: '#ec4899', description: 'Spiritual, cultural, and mythological' },
+  { name: 'Funny',       slug: 'funny',      icon: 'smile',      color: '#f59e0b', description: 'Memes, relatable humor, and jokes' },
+  { name: 'Wise',        slug: 'wise',       icon: 'brain',      color: '#6366f1', description: 'Philosophy, paradoxes, and deep thoughts' },
+  { name: 'Guidance',    slug: 'guidance',   icon: 'lightbulb',  color: '#10b981', description: 'Motivational quotes and life hacks' },
+  { name: 'Love',        slug: 'love',       icon: 'heart',      color: '#ef4444', description: 'Romance, friendship, and family' },
+  { name: 'Science',     slug: 'science',    icon: 'flask',      color: '#3b82f6', description: 'Experiments, tech humor, and discoveries' },
+  { name: 'Psychology',  slug: 'psychology', icon: 'puzzle',     color: '#8b5cf6', description: 'Mind tricks, behavior, and mental health' },
+  { name: 'Sociology',   slug: 'sociology',  icon: 'globe',      color: '#06b6d4', description: 'Culture, society, and human behavior' },
+  { name: 'Myths',       slug: 'myths',      icon: 'sparkles',   color: '#ec4899', description: 'Spiritual, cultural, and mythological' },
 ];
 
 export async function seedDatabase(dataSource: DataSource) {

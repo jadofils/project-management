@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
-import { PenTool, Lock, Loader2, Plus, X, Trash2, Send, Eye, EyeOff } from 'lucide-react';
+import { PenTool, Lock, Loader2, Plus, X, Trash2, Send, Eye, EyeOff, Smile, Brain, Lightbulb, Heart, FlaskConical, Puzzle, Globe, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, type Project } from '../services/api';
 
-const CATEGORY_ICONS: Record<string, string> = { funny: '😂', wise: '🧠', guidance: '💡', love: '❤️', science: '🔬', psychology: '🧩', sociology: '🌍', myths: '🔮' };
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  smile: Smile, brain: Brain, lightbulb: Lightbulb, heart: Heart,
+  flask: FlaskConical, puzzle: Puzzle, globe: Globe, sparkles: Sparkles,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  smile: 'text-amber-500', brain: 'text-indigo-500', lightbulb: 'text-emerald-500', heart: 'text-red-500',
+  flask: 'text-blue-500', puzzle: 'text-violet-500', globe: 'text-cyan-500', sparkles: 'text-pink-500',
+};
 
 interface Props {
   projects: Project[];
@@ -56,8 +64,11 @@ export function ContentPanel({ projects }: Props) {
   const publish = async (draft: any) => {
     const projectId = projects[0]?.id;
     if (!projectId) return toast.error('No project available');
-    try { await api.publishContentDraft(draft.id, projectId); await api.createTask({ project_id: projectId, title: draft.title, description: draft.body, status: 'todo', priority: 'medium' } as any); toast.success('Published to board'); load(); }
-    catch { toast.error('Failed'); }
+    try {
+      await api.publishContentDraft(draft.id, projectId);
+      await api.createTask({ project_id: projectId, title: draft.title, description: draft.body, status: 'todo', priority: 'medium' } as any);
+      toast.success('Published to board'); load();
+    } catch { toast.error('Failed'); }
   };
 
   if (!authenticated) {
@@ -97,21 +108,25 @@ export function ContentPanel({ projects }: Props) {
       </div>
 
       <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-6">
-        {categories.map(c => (
-          <div key={c.id} className="text-center p-2 rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="text-2xl mb-1">{CATEGORY_ICONS[c.slug] || '📝'}</div>
-            <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{c.name}</p>
-          </div>
-        ))}
+        {categories.map(c => {
+          const Icon = CATEGORY_ICONS[c.icon] || PenTool;
+          return (
+            <div key={c.id} className="text-center p-3 rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow">
+              <Icon className={`w-5 h-5 mx-auto mb-1 ${CATEGORY_COLORS[c.icon] || 'text-gray-400'}`} />
+              <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{c.name}</p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="space-y-3">
         {drafts.map(d => {
           const cat = categories.find(c => c.id === d.category_id);
+          const Icon = CATEGORY_ICONS[cat?.icon || ''] || PenTool;
           return (
             <div key={d.id} className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-4">
               <div className="flex items-start gap-3">
-                <div className="text-2xl">{CATEGORY_ICONS[cat?.slug || ''] || '📝'}</div>
+                <div className={`shrink-0 mt-0.5 ${CATEGORY_COLORS[cat?.icon || ''] || 'text-gray-400'}`}><Icon className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">{cat?.name || 'Unknown'}</span>
@@ -138,12 +153,12 @@ export function ContentPanel({ projects }: Props) {
             <form onSubmit={createDraft} className="space-y-3">
               <select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))} className="w-full text-sm border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2" required>
                 <option value="">Select category</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{CATEGORY_ICONS[c.slug]} {c.name}</option>)}
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" className="w-full text-sm border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2" required />
               <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder="Content body..." rows={4} className="w-full text-sm border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 resize-none" required />
               <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))} className="w-full text-sm border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2">
-                <option value="en">English</option><option value="fr">French</option><option value="sw">Kinyarwanda</option><option value="es">Spanish</option>
+                <option value="en">English</option><option value="fr">French</option><option value="rw">Kinyarwanda</option><option value="es">Spanish</option>
               </select>
               <div className="flex gap-2 justify-end pt-1">
                 <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">Cancel</button>
