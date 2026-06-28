@@ -33,6 +33,11 @@ export class ContentService {
     return this.drafts.save(this.drafts.create({ ...dto, user_id: userId } as any));
   }
 
+  async bulkCreate(userId: string, items: any[]) {
+    const entities = items.map(item => this.drafts.create({ ...item, user_id: userId } as any));
+    return this.drafts.save(entities as any);
+  }
+
   async updateDraft(id: string, dto: any) {
     await this.drafts.update(id, dto);
     return this.drafts.findOne({ where: { id } });

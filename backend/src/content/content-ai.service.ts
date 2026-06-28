@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { ContentDraft, ContentCategory } from '../database/entities';
 
 @Injectable()
@@ -17,132 +17,69 @@ export class ContentAIService {
   private get model() { return process.env.AI_MODEL || 'gpt-4o-mini'; }
 
   private async callAI(messages: { role: string; content: string }[], temperature = 0.8): Promise<string> {
-    if (!this.apiKey) {
-      this.logger.warn('AI_API_KEY not set — returning empty');
-      return '';
-    }
+    if (!this.apiKey) return '';
     try {
       const res = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
-        body: JSON.stringify({ model: this.model, messages, temperature, max_tokens: 2000 }),
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
+        body: JSON.stringify({ model: this.model, messages, temperature, max_tokens: 4000 }),
       });
       const data = await res.json() as any;
       return data.choices?.[0]?.message?.content || '';
-    } catch (e: any) {
-      this.logger.error(`AI call failed: ${e.message}`);
-      return '';
-    }
+    } catch (e: any) { this.logger.error(`AI call failed: ${e.message}`); return ''; }
   }
 
-  // ── Title generation ──────────────────────────────────────────────────────
-  async generateTitle(categoryId: string, topic?: string) {
+  // ── Batch generate content for a category ──────────────────────────────────
+  async batchGenerate(categoryId: string, count = 10) {
     const cat = await this.categories.findOne({ where: { id: categoryId } });
-    const catName = cat?.name || 'content';
-    const prompt = `Generate 5 creative, engaging titles for ${catName} content${topic ? ` about "${topic}"` : ''}. 
-Each title should be on a new line, numbered. Make them catchy and social-media friendly.
-Focus on: ${cat?.description || 'general audience engagement'}.`;
-    const result = await this.callAI([{ role: 'user', content: prompt }]);
-    return { titles: result.split('\n').filter(l => l.trim()) };
+    if (!cat) return [];
+
+    // Get existing titles to avoid duplicates
+    const existing = await this.drafts.find({ where: { category_id: categoryId }, select: ['title'], order: { created_at: 'DESC' }, take: 50 });
+    const existingTitles = existing.map(d => d.title).join('\n- ');
+
+    const prompt = `You are a professional social media content creator specializing in "${cat.name}" content.
+
+Generate ${count} unique social media posts. Each post must be COMPLETELY different from previous ones.
+
+PREVIOUSLY CREATED (DO NOT REPEAT):
+- ${existingTitles || 'None yet'}
+
+Category: ${cat.name} — ${cat.description || ''}
+
+Return a JSON array of objects:
+[
+  {
+    "title": "Engaging, catchy title (max 80 chars)",
+    "body": "Full post content with emojis and hashtags (150-300 words)",
+    "hashtags": ["#tag1", "#tag2", "#tag3"],
+    "bestPlatform": "Instagram/TikTok/Twitter/etc"
   }
+]
 
-  // ── Content body generation ───────────────────────────────────────────────
-  async generateBody(categoryId: string, title: string, language = 'en') {
-    const cat = await this.categories.findOne({ where: { id: categoryId } });
-    const catName = cat?.name || 'content';
-    const langMap: Record<string, string> = { en: 'English', fr: 'French', rw: 'Kinyarwanda', es: 'Spanish' };
+Make each post unique in topic, angle, and tone. Use trending formats, questions, facts, humor.`;
 
-    const prompt = `Write engaging social media content for the ${catName} category.
-Title: "${title}"
-Language: ${langMap[language] || 'English'}
-Requirements:
-- 150-300 words
-- Use emojis naturally (1-2 per paragraph)
-- Include 3-5 relevant hashtags at the end
-- Make it shareable and engaging
-- Add a call-to-action at the end`;
-    const result = await this.callAI([{ role: 'user', content: prompt }]);
-    return { body: result };
-  }
-
-  // ── Image prompt generation ───────────────────────────────────────────────
-  async generateImagePrompt(categoryId: string, title: string, body: string) {
-    const cat = await this.categories.findOne({ where: { id: categoryId } });
-    const prompt = `Create a detailed image generation prompt for this ${cat?.name || ''} content:
-Title: "${title}"
-Content: "${body.slice(0, 300)}"
-Generate a DALL-E/Midjourney prompt that:
-- Matches the category tone (${cat?.description || 'professional'})
-- Is visually striking
-- Suitable for social media
-- No text in the image
-- Professional, clean aesthetic`;
-    const result = await this.callAI([{ role: 'user', content: prompt }]);
-    return { imagePrompt: result };
-  }
-
-  // ── Infographic template ──────────────────────────────────────────────────
-  async generateInfographic(categoryId: string, title: string, body: string) {
-    const cat = await this.categories.findOne({ where: { id: categoryId } });
-    const prompt = `Create a structured infographic outline for this ${cat?.name || ''} content:
-Title: "${title}"
-Content: "${body.slice(0, 500)}"
-
-Output format (JSON-like structure):
-{
-  "sections": [
-    { "heading": "...", "icon": "...", "text": "..." }
-  ],
-  "keyStats": ["...", "..."],
-  "cta": "..."
-}`;
-    const result = await this.callAI([{ role: 'user', content: prompt }], 0.5);
-    try {
-      return { infographic: JSON.parse(result) };
-    } catch {
-      return { infographic: { sections: [], keyStats: [], cta: '', raw: result } };
-    }
-  }
-
-  // ── Content Analyzer — learns from past content ──────────────────────────
-  async analyzePastContent() {
-    const recent = await this.drafts.find({ order: { created_at: 'DESC' }, take: 20 });
-    if (recent.length < 3) return { suggestions: ['Create more content to enable AI analysis'] };
-
-    const allCats = await this.categories.find();
-    const catMap = Object.fromEntries(allCats.map(c => [c.id, c.name]));
-
-    const summary = recent.map(d => `[${catMap[d.category_id] || 'Unknown'}] ${d.title}: ${d.body.slice(0, 100)}...`).join('\n');
-    const prompt = `Analyze these recent social media posts and provide recommendations:
-
-${summary}
-
-Return JSON: { "bestPerforming": ["...", "..."], "suggestedTopics": ["...", "..."], "trendingFormats": ["...", "..."], "bestTimeToPost": "...", "improvementTips": ["..."] }`;
-    const result = await this.callAI([{ role: 'user', content: prompt }], 0.3);
-    try { return { analysis: JSON.parse(result) }; }
-    catch { return { analysis: { raw: result } }; }
-  }
-
-  // ── Full content generation from idea ──────────────────────────────────────
-  async generateFromIdea(categoryId: string, idea: string, language = 'en') {
-    const cat = await this.categories.findOne({ where: { id: categoryId } });
-    const langMap: Record<string, string> = { en: 'English', fr: 'French', rw: 'Kinyarwanda', es: 'Spanish' };
-
-    const prompt = `You are a professional social media content creator for "${cat?.name}" content.
-
-User's idea: "${idea}"
-Language: ${langMap[language] || 'English'}
-
-Create a complete social media post. Return JSON:
-{
-  "title": "Engaging, catchy title",
-  "body": "The full post content with emojis, hashtags, and CTA",
-  "suggestedImage": "Description for an image that would accompany this post",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
-  "bestPlatform": "Instagram/TikTok/Twitter/etc"
-}`;
     const result = await this.callAI([{ role: 'user', content: prompt }], 0.9);
-    try { return JSON.parse(result); }
-    catch { return { title: idea, body: result, suggestedImage: '', hashtags: [], bestPlatform: '' }; }
+    try {
+      const cleaned = result.replace(/```json|```/g, '').trim();
+      return JSON.parse(cleaned);
+    } catch {
+      return [];
+    }
+  }
+
+  // ── Content Analyzer ──────────────────────────────────────────────────────
+  async analyzeContent() {
+    const [drafts, categories] = await Promise.all([
+      this.drafts.find({ order: { created_at: 'DESC' }, take: 30 }),
+      this.categories.find(),
+    ]);
+    if (drafts.length < 2) return { insights: { message: 'Create more content for AI analysis' } };
+
+    const catMap = Object.fromEntries(categories.map(c => [c.id, c.name]));
+    const summary = drafts.map(d => `[${catMap[d.category_id] || '?'}] "${d.title}"`).join('\n');
+    const prompt = `Analyze these content pieces:\n${summary}\n\nReturn JSON: { "topCategories": ["..."], "avgLength": "...", "suggestedTopics": ["...", "..."], "contentGaps": ["..."] }`;
+    const result = await this.callAI([{ role: 'user', content: prompt }], 0.3);
+    try { return { insights: JSON.parse(result.replace(/```json|```/g, '').trim()) }; }
+    catch { return { insights: { raw: result } }; }
   }
 }

@@ -465,6 +465,7 @@ export const api = {
   getContentTemplates: (categoryId?: string) => request<any[]>(`/content/templates${categoryId ? `?category_id=${categoryId}` : ''}`),
   getContentDrafts: (categoryId?: string) => request<any[]>(`/content/drafts${categoryId ? `?category_id=${categoryId}` : ''}`),
   createContentDraft: (dto: any) => request<any>('/content/drafts', { method: 'POST', body: JSON.stringify(dto) }),
+  bulkCreateContentDrafts: (items: any[]) => request<any>('/content/drafts/bulk', { method: 'POST', body: JSON.stringify({ items }) }),
   updateContentDraft: (id: string, dto: any) => request<any>(`/content/drafts/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   deleteContentDraft: (id: string) => request<any>(`/content/drafts/${id}`, { method: 'DELETE' }),
   publishContentDraft: (id: string, projectId: string) => request<any>(`/content/drafts/${id}/publish`, { method: 'POST', body: JSON.stringify({ project_id: projectId }) }),
@@ -472,11 +473,7 @@ export const api = {
   setContentPassword: (password: string) => request<any>('/content/set-password', { method: 'POST', body: JSON.stringify({ password }) }),
 
   // AI Content
-  aiGenerateTitle: (categoryId: string, topic?: string) => request<{ titles: string[] }>('/content/ai/generate-title', { method: 'POST', body: JSON.stringify({ category_id: categoryId, topic }) }),
-  aiGenerateBody: (categoryId: string, title: string, language?: string) => request<{ body: string }>('/content/ai/generate-body', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, language }) }),
-  aiGenerateImage: (categoryId: string, title: string, body: string) => request<{ imagePrompt: string }>('/content/ai/generate-image', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, body }) }),
-  aiGenerateInfographic: (categoryId: string, title: string, body: string) => request<any>('/content/ai/generate-infographic', { method: 'POST', body: JSON.stringify({ category_id: categoryId, title, body }) }),
-  aiGenerateFromIdea: (categoryId: string, idea: string, language?: string) => request<any>('/content/ai/generate-from-idea', { method: 'POST', body: JSON.stringify({ category_id: categoryId, idea, language }) }),
+  aiBatchGenerate: (categoryId: string, count = 10) => request<any[]>(`/content/ai/batch`, { method: 'POST', body: JSON.stringify({ category_id: categoryId, count }) }),
   aiAnalyzeContent: () => request<any>('/content/ai/analyze'),
 };
 
