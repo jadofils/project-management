@@ -44,7 +44,9 @@ export class ContentAIService {
 
   private parseJSON(raw: string): any {
     try {
-      const s = raw.replace(/```json[\s\S]*?```|```/g, '').trim();
+      // Extract content from inside code fences if present, otherwise use raw
+      const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const s = (fenced ? fenced[1] : raw).trim();
       const start = s.indexOf('[');
       const end   = s.lastIndexOf(']');
       if (start === -1 || end === -1) return [];
@@ -148,7 +150,9 @@ Return ONLY a valid JSON array:
     }
 
     const raw = await this.callAI([{ role: 'user', content: prompt }], 0.92);
-    return this.parseJSON(raw);
+    const parsed = this.parseJSON(raw);
+    if (!parsed.length) this.logger.warn(`parseJSON returned [] — raw AI response: ${raw.slice(0, 500)}`);
+    return parsed;
   }
 
   // ── Platform formatter ────────────────────────────────────────────────────
