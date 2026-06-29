@@ -97,10 +97,21 @@ export default function App() {
     return stopPing;
   }, []);
 
+  // ── Login attendance: clock in once authed, clock out on leave ───────────
+  useEffect(() => {
+    if (!authed) return;
+    api.loginClockIn().catch(() => {}); // best-effort — don't block the app
+
+    const clockOut = () => api.loginClockOut();
+    window.addEventListener('beforeunload', clockOut);
+    return () => window.removeEventListener('beforeunload', clockOut);
+  }, [authed]);
+
   const handleAuth = (u: User) => {
     setUser(u); setAuthed(true); setLoading(false);
     const token = localStorage.getItem('accessToken');
     if (token) connectSocket(token);
+    api.loginClockIn().catch(() => {});
   };
 
   const handleInviteAccepted = async (projectId: string) => {
@@ -129,9 +140,18 @@ export default function App() {
     toast.success('You have joined the project!');
   };
 
-  const handleLogout = () => { logout(); setUser(null); setAuthed(false); setProjects([]); setActiveProject(null); setTasks([]); };
+  const handleLogout = () => { api.loginClockOut(); logout(); setUser(null); setAuthed(false); setProjects([]); setActiveProject(null); setTasks([]); };
 
   const handleSidebarNav = (section: string) => {
+    // Block non-admin users from accessing admin-only sections
+    const adminOnlySections = [
+      'employees', 'users',
+      'requests', 'balances', 'calendar',
+      'email-logs', 'invitations', 'send-mail',
+      'content-generate', 'content-drafts', 'content-published', 'content-categories', 'content-analytics',
+    ];
+    if (adminOnlySections.includes(section) && user?.system_role !== 'admin') return;
+
     setSidebarSection(section);
     // Map sidebar sections to topNav + boardTab
     if (section === 'admin' || section === 'users' || section === 'comms' || section === 'email-logs' || section === 'invitations') {
@@ -358,6 +378,7 @@ export default function App() {
           defaultStatus={newTaskForCol} projectId={activeProject.id}
           onCreated={t => setTasks(prev => [...prev, t])}
           onClose={() => setNewTaskForCol(null)}
+          isManager={projectPerms.isManager}
         />
       )}
 
@@ -428,24 +449,28 @@ export default function App() {
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none" />
                   </div>
-                  <select value={projectFilter} onChange={e => {
-                    const val = e.target.value as any;
-                    setProjectFilter(val);
-                    const filtered = projects.filter(p => val === 'all' || (val === 'company' ? p.type === 'company' : p.type !== 'company'));
-                    if (filtered.length > 0 && (!activeProject || !filtered.some(p => p.id === activeProject.id))) {
-                      selectProject(filtered[0]);
-                    }
-                  }}
-                    className="text-xs border rounded-lg px-2 py-1.5 bg-white text-gray-500 cursor-pointer">
-                    <option value="all">All</option>
-                    <option value="company">Company</option>
-                    <option value="individual">Personal</option>
-                  </select>
-                  <button onClick={() => setShowNewProject(true)}
-                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg">
-                    <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
-                  </button>
-                  {activeProject && (
+                  {isAdmin && (
+                    <>
+                      <select value={projectFilter} onChange={e => {
+                        const val = e.target.value as any;
+                        setProjectFilter(val);
+                        const filtered = projects.filter(p => val === 'all' || (val === 'company' ? p.type === 'company' : p.type !== 'company'));
+                        if (filtered.length > 0 && (!activeProject || !filtered.some(p => p.id === activeProject.id))) {
+                          selectProject(filtered[0]);
+                        }
+                      }}
+                        className="text-xs border rounded-lg px-2 py-1.5 bg-white text-gray-500 cursor-pointer">
+                        <option value="all">All</option>
+                        <option value="company">Company</option>
+                        <option value="individual">Personal</option>
+                      </select>
+                      <button onClick={() => setShowNewProject(true)}
+                        className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg">
+                        <Plus className="w-4 h-4" /><span className="hidden sm:block">New</span>
+                      </button>
+                    </>
+                  )}
+                  {isAdmin && activeProject && (
                     <button onClick={() => setShowDeleteConfirm(true)} disabled={deletingProject} title="Delete project"
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                       {deletingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -498,7 +523,7 @@ export default function App() {
         </div>
       ) : topNav === ('leave' as any) ? (
         <div className="flex-1 overflow-auto">
-          <LeavePanel />
+          {isAdmin ? <LeavePanel /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('reports' as any) ? (
         <div className="flex-1 overflow-auto">
@@ -510,7 +535,7 @@ export default function App() {
         </div>
       ) : topNav === ('content' as any) ? (
         <div className="flex-1 overflow-auto">
-          <ContentPanel projects={projects} section={sidebarSection} isAdmin={isAdmin} />
+          {isAdmin ? <ContentPanel projects={projects} section={sidebarSection} isAdmin={isAdmin} /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('settings' as any) ? (
         <div className="flex-1 overflow-auto">
@@ -571,9 +596,9 @@ export default function App() {
 
               {/* Tab content */}
               {boardTab === 'board' && (
-                <div className="flex-1 overflow-auto p-4 md:p-6">
+                <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
                   <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 min-w-[900px]">
+                    <div className="flex gap-5 h-full" style={{ minWidth: 'max-content' }}>
                       {COLUMNS.map(col => {
                         const colTasks = tasks.filter(t => t.status === col.id).sort((a, b) => a.sort_order - b.sort_order);
                         const isMember = !!currentMember || user?.system_role === 'admin';
@@ -651,13 +676,16 @@ export default function App() {
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <FolderKanban className="w-5 h-5 text-indigo-500" />All Projects
+                    <FolderKanban className="w-5 h-5 text-indigo-500" />
+                    {isAdmin ? 'All Projects' : 'My Projects'}
                     <span className="text-xs text-gray-400 font-normal">({projects.length})</span>
                   </h2>
-                  <button onClick={() => setShowNewProject(true)}
-                    className="flex items-center gap-1.5 text-sm px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium">
-                    <Plus className="w-4 h-4" />New Project
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => setShowNewProject(true)}
+                      className="flex items-center gap-1.5 text-sm px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium">
+                      <Plus className="w-4 h-4" />New Project
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {projects.map(p => {
@@ -708,7 +736,7 @@ export default function App() {
       )}
 
       {/* New Project Modal */}
-      {showNewProject && (
+      {showNewProject && isAdmin && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowNewProject(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">

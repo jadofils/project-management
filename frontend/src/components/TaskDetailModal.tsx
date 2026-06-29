@@ -19,7 +19,7 @@ const STATUSES   = ['todo', 'in_progress', 'review', 'rework', 'done'] as const;
 const FULL_PERMS: ProjectPermissions = {
   canManageMembers: true, canCreateTask: true, canEditTask: true,
   canDeleteTask: true, canComment: true, canTickSubtask: true,
-  canDrag: true, canManageProject: true, isManager: true,
+  canDrag: true, canManageProject: true, canAssignTask: true, isManager: true,
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -545,16 +545,19 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete, permissions
                   )}
                 </div>
 
-                {/* Assignees */}
+                {/* Assignees — only managers can change who a task is assigned to */}
                 <div className="col-span-2">
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
                     <Users className="w-3 h-3" />Assignees
+                    {!permissions.canAssignTask && (
+                      <span className="ml-auto text-[10px] text-gray-400 font-normal normal-case">Only project managers can change assignees</span>
+                    )}
                   </label>
-                  {permissions.canEditTask
+                  {permissions.canAssignTask
                     ? <AssigneePicker users={users} members={members} value={assigneeIds} onChange={setAssigneeIds} />
                     : <div className="flex flex-wrap gap-1.5">{assigneeIds.map(id => { const u = userMap[id]; if (!u) return null; const role = roleMap[id]; return (<span key={id} className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${role ? getRoleDef(role).badge : 'bg-gray-100 text-gray-600'}`}>{userName(u)}</span>); })}{assigneeIds.length === 0 && <span className="text-sm text-gray-400">Unassigned</span>}</div>
                   }
-                  {assigneeIds.length > 0 && (
+                  {permissions.canAssignTask && assigneeIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {assigneeIds.map(id => {
                         const u = userMap[id];

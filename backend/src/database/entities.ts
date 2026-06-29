@@ -191,6 +191,44 @@ export class FeedbackReply {
   @CreateDateColumn() created_at!: Date;
 }
 
+// ── Proposal (Feature Request / Suggestion) ───────────────────────────────────
+@Entity('proposals')
+export class Proposal {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) author_id!: string;
+  @Column({ type: 'varchar', length: 300 }) title!: string;
+  @Column({ type: 'text', nullable: true }) description!: string | null;
+  @Column({ type: 'varchar', length: 30, default: 'open' }) status!: string;
+  @Column({ type: 'simple-json', nullable: true }) tags!: string[] | null;
+  @Column({ type: 'int', default: 0 }) votes_for!: number;
+  @Column({ type: 'int', default: 0 }) votes_against!: number;
+  @Column({ type: 'int', default: 0 }) comment_count!: number;
+  @Column({ type: 'varchar', length: 50, nullable: true }) version_tag!: string | null;
+  @CreateDateColumn() created_at!: Date;
+  @UpdateDateColumn() updated_at!: Date;
+}
+
+// ── Proposal Vote ─────────────────────────────────────────────────────────────
+@Entity('proposal_votes')
+export class ProposalVote {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) proposal_id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'varchar', length: 10 }) vote!: string;
+  @Column({ type: 'text', nullable: true }) reason!: string | null;
+  @CreateDateColumn() created_at!: Date;
+}
+
+// ── Proposal Comment ──────────────────────────────────────────────────────────
+@Entity('proposal_comments')
+export class ProposalComment {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'uuid' }) proposal_id!: string;
+  @Column({ type: 'uuid' }) user_id!: string;
+  @Column({ type: 'text' }) content!: string;
+  @CreateDateColumn() created_at!: Date;
+}
+
 // ── Project Invitation ────────────────────────────────────────────────────────
 @Entity('project_invitations')
 export class ProjectInvitation {
@@ -315,6 +353,7 @@ export class AttendanceRecord {
   @Column({ type: 'uuid', nullable: true }) office_id!: string | null;
   @Column({ type: 'varchar', length: 20, default: 'present' }) status!: string;
   @Column({ type: 'boolean', default: true }) verified!: boolean;
+  @Column({ type: 'int', nullable: true }) duration_minutes!: number | null;
   @Column({ type: 'text', nullable: true }) notes!: string | null;
   @CreateDateColumn() created_at!: Date;
 }

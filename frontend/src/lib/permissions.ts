@@ -9,6 +9,7 @@ export interface ProjectPermissions {
   canTickSubtask:   boolean;
   canDrag:          boolean;
   canManageProject: boolean;
+  canAssignTask:    boolean; // only project managers / admins can assign tasks to others
   isManager:        boolean;
 }
 
@@ -21,13 +22,14 @@ interface PermDef {
   canTickSubtask: boolean;
   canDrag: boolean;
   canManageProject: boolean;
+  canAssignTask: boolean;
 }
 
 const PERMISSIONS_BY_LEVEL: Record<string, PermDef> = {
-  viewer:      { canManageMembers:false, canCreateTask:false, canEditTask:false, canDeleteTask:false, canComment:false, canTickSubtask:false, canDrag:false, canManageProject:false },
-  contributor: { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false },
-  editor:      { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false },
-  manager:     { canManageMembers:true,  canCreateTask:true,  canEditTask:true,  canDeleteTask:true,  canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:true  },
+  viewer:      { canManageMembers:false, canCreateTask:false, canEditTask:false, canDeleteTask:false, canComment:false, canTickSubtask:false, canDrag:false, canManageProject:false, canAssignTask:false },
+  contributor: { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false, canAssignTask:false },
+  editor:      { canManageMembers:false, canCreateTask:true,  canEditTask:true,  canDeleteTask:false, canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:false, canAssignTask:false },
+  manager:     { canManageMembers:true,  canCreateTask:true,  canEditTask:true,  canDeleteTask:true,  canComment:true,  canTickSubtask:true,  canDrag:true,  canManageProject:true,  canAssignTask:true  },
 };
 
 const HIERARCHY = ['viewer', 'contributor', 'editor', 'manager'];
@@ -85,16 +87,27 @@ export function taskPermissions(
   task: Task,
   userId: string,
 ): ProjectPermissions {
+  // Managers / admins always have full rights — no further narrowing needed
   if (base.isManager) return base;
+
   const isCreator  = task.created_by === userId;
-  const isAssignee = (task.assignee_ids || [task.assignee_id].filter(Boolean) as string[]).includes(userId);
+  const assigneeIds = task.assignee_ids?.length
+    ? task.assignee_ids
+    : (task.assignee_id ? [task.assignee_id] : []);
+  const isAssignee = assigneeIds.includes(userId);
+
+  // A creator who assigned the task to someone ELSE loses ownership.
+  // The task now "belongs" to the assignee(s), not the creator.
+  const creatorRetainsOwnership = isCreator && (assigneeIds.length === 0 || isAssignee);
+
   return {
     ...base,
-    canEditTask:   base.canEditTask || isCreator || isAssignee,
-    canDeleteTask: base.canDeleteTask || isCreator,
-    canComment:    base.canComment || isAssignee,
+    canEditTask:    base.canEditTask || creatorRetainsOwnership || isAssignee,
+    canDeleteTask:  base.canDeleteTask || creatorRetainsOwnership,
+    canComment:     base.canComment || isAssignee || isCreator,
     canTickSubtask: base.canTickSubtask || isAssignee,
-    canDrag:       base.canDrag || isAssignee,
+    canDrag:        base.canDrag || isAssignee,
+    // canAssignTask is NEVER granted by task context — only managers have it
   };
 }
 

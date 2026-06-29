@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt.guard';
+import { JwtAuthGuard, AdminGuard } from '../auth/jwt.guard';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects') @UseGuards(JwtAuthGuard)
@@ -12,6 +12,7 @@ export class ProjectsController {
   }
 
   @Post()
+  @UseGuards(AdminGuard)
   create(@Req() req: any, @Body() dto: any) {
     return this.svc.create(req.user.sub, dto);
   }

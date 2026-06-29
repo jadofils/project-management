@@ -201,6 +201,40 @@ export interface Subtask {
 }
 export interface Comment { id: string; task_id: string; user_id: string; content: string; created_at: string; }
 export interface Issue { id: string; project_id: string; title: string; description?: string; status: string; priority: string; reported_by: string; created_at: string; }
+export interface Proposal {
+  id: string;
+  author_id: string;
+  title: string;
+  description?: string | null;
+  status: 'open' | 'planned' | 'in_progress' | 'implemented' | 'rejected';
+  tags?: string[] | null;
+  votes_for: number;
+  votes_against: number;
+  comment_count: number;
+  version_tag?: string | null;
+  created_at: string;
+  updated_at: string;
+  user_vote?: { vote: 'for' | 'against'; reason?: string | null } | null;
+  author?: { id: string; first_name: string; last_name: string; avatar_url?: string | null } | null;
+}
+export interface ProposalVoteRecord {
+  id: string;
+  proposal_id: string;
+  user_id: string;
+  vote: 'for' | 'against';
+  reason?: string | null;
+  created_at: string;
+  user?: { id: string; first_name: string; last_name: string; avatar_url?: string | null } | null;
+}
+export interface ProposalComment {
+  id: string;
+  proposal_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user?: { id: string; first_name: string; last_name: string; avatar_url?: string | null } | null;
+}
+
 export interface FeedbackItem {
   id: string;
   user_id: string;
@@ -323,6 +357,17 @@ export const api = {
     request<void>(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
   adminResetPasswords: () => request<{ ok: boolean; updated: number; excluded: string }>('/admin/reset-passwords', { method: 'POST' }),
 
+  // Attendance login tracking
+  loginClockIn: () => request<{ id: string; clock_in: string }>('/attendance/login', { method: 'POST' }),
+  loginClockOut: () => {
+    // Use keepalive so this fires even during page unload
+    return fetch(`${API}/attendance/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      keepalive: true,
+    }).catch(() => {});
+  },
+
   // Messages
   getMessages: (projectId: string) => request<Message[]>(`/projects/${projectId}/messages`),
   sendMessage: (projectId: string, data: {
@@ -381,6 +426,21 @@ export const api = {
     request<FeedbackReply>(`/feedback/${id}/replies`, { method: 'POST', body: JSON.stringify({ content }) }),
   assignFeedback: (id: string, assignedTo: string) =>
     request<FeedbackItem>(`/feedback/${id}/assign`, { method: 'PATCH', body: JSON.stringify({ assigned_to: assignedTo }) }),
+
+  // Proposals
+  getProposals: (page = 1, status?: string) =>
+    request<{ data: Proposal[]; total: number; totalPages: number }>(`/proposals?page=${page}${status ? `&status=${status}` : ''}`),
+  createProposal: (dto: { title: string; description?: string; tags?: string[] }) =>
+    request<Proposal>('/proposals', { method: 'POST', body: JSON.stringify(dto) }),
+  voteProposal: (id: string, vote: 'for' | 'against', reason?: string) =>
+    request<{ action: string }>(`/proposals/${id}/vote`, { method: 'POST', body: JSON.stringify({ vote, reason }) }),
+  getProposalVotes: (id: string) => request<ProposalVoteRecord[]>(`/proposals/${id}/votes`),
+  getProposalComments: (id: string) => request<ProposalComment[]>(`/proposals/${id}/comments`),
+  addProposalComment: (id: string, content: string) =>
+    request<ProposalComment>(`/proposals/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
+  updateProposalStatus: (id: string, status: string, version_tag?: string) =>
+    request<Proposal>(`/proposals/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, version_tag }) }),
+  getChangelog: () => request<{ version: string; proposals: Proposal[] }[]>('/proposals/changelog'),
 
   // Email logs
   getEmailLogs: (params?: { type?: string; project_id?: string; page?: number; limit?: number }) => {

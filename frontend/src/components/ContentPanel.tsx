@@ -1234,7 +1234,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
     setGenerating(true); setGenerated([]); setSelectedIdxs(new Set());
     try {
       const items = await api.aiBatchGenerate(selectedCat, genCount, customTopic || undefined, contentType, persona);
-      if (!Array.isArray(items) || items.length === 0) { toast.error('No content returned — check AI settings'); return; }
+      if (!Array.isArray(items) || items.length === 0) { toast.error('AI returned no content. Set AI_API_KEY (OpenAI) or ANTHROPIC_API_KEY in your Render server environment variables.'); return; }
       setGenerated(items);
       setSelectedIdxs(new Set(items.map((_, i) => i)));
       const label = contentType === 'dialog' ? 'dialog cards' : contentType === 'reel' ? 'reel scripts' : contentType === 'audio' ? 'audio scripts' : 'posts';

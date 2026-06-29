@@ -163,8 +163,8 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
           const isActive = activeSection.startsWith(group.id);
           const Icon = group.icon;
 
-          // Hide admin-only sections
-          const adminOnly = ['organization', 'attendance', 'reports', 'recruitment'];
+          // Sections restricted to system admins only
+          const adminOnly = ['organization', 'people', 'attendance', 'leave', 'reports', 'recruitment', 'comms', 'content'];
           if (adminOnly.includes(group.id) && !isAdmin) return null;
 
           return (

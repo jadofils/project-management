@@ -6,6 +6,7 @@ import {
   ImagePlus, ChevronDown, ChevronUp, Reply,
 } from 'lucide-react';
 import { api, type FeedbackItem, type FeedbackReply, type User, userInitials, userName } from '../services/api';
+import { ProposalsPanel } from './ProposalsPanel';
 
 interface Props {
   projectId: string;
@@ -14,6 +15,9 @@ interface Props {
 }
 
 export const FeedbackPage = React.memo(function FeedbackPage({ projectId, currentUser, allUsers }: Props) {
+  const [activeTab, setActiveTab] = useState<'feedback' | 'proposals'>('feedback');
+  const isAdmin = currentUser.system_role === 'admin';
+
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -125,6 +129,41 @@ export const FeedbackPage = React.memo(function FeedbackPage({ projectId, curren
 
   return (
     <div className="flex-1 overflow-auto p-4 md:p-6" onPaste={handlePaste}>
+      {/* Tab switcher */}
+      <div className="max-w-3xl mx-auto mb-5">
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit">
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+              activeTab === 'feedback'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />Feedback
+          </button>
+          <button
+            onClick={() => setActiveTab('proposals')}
+            className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+              activeTab === 'proposals'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />Proposals & Suggestions
+          </button>
+        </div>
+      </div>
+
+      {/* Proposals tab */}
+      {activeTab === 'proposals' && (
+        <div className="max-w-3xl mx-auto">
+          <ProposalsPanel currentUser={currentUser} isAdmin={isAdmin} />
+        </div>
+      )}
+
+      {/* Feedback tab */}
+      {activeTab === 'feedback' && (
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
@@ -255,8 +294,9 @@ export const FeedbackPage = React.memo(function FeedbackPage({ projectId, curren
           </div>
         )}
       </div>
+      )} {/* end feedback tab */}
 
-      {showCreate && (
+      {showCreate && activeTab === 'feedback' && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">

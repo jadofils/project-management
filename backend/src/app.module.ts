@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword } from './database/entities';
+import { Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword, Proposal, ProposalVote, ProposalComment } from './database/entities';
 import { EncryptionMiddleware } from './middleware/encryption.middleware';
 import { GlobalExceptionFilter } from './common/exception.filter';
 import { CloudinaryService } from './common/cloudinary.service';
@@ -56,8 +56,10 @@ import { RecruitmentService } from './recruitment/recruitment.service';
 import { ContentController } from './content/content.controller';
 import { ContentService } from './content/content.service';
 import { ContentAIService } from './content/content-ai.service';
+import { ProposalsController } from './proposals/proposals.controller';
+import { ProposalsService } from './proposals/proposals.service';
 
-const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword];
+const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackReply, User, ProjectMember, ProjectMessage, Subtask, TaskAssignmentLog, ProjectInvitation, EmailLog, Division, Department, JobPosition, EmployeeProfile, Office, AttendanceToken, AttendanceRecord, LeaveType, LeaveRequest, LeaveBalance, JobPosting, Application, ContentCategory, ContentTemplate, ContentDraft, ContentPassword, Proposal, ProposalVote, ProposalComment];
 
 @Module({
   imports: [
@@ -101,6 +103,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     ReportsController,
     RecruitmentController,
     ContentController,
+    ProposalsController,
   ],
   providers: [
     AuthService,
@@ -130,6 +133,7 @@ const ENTITIES = [Project, Task, Comment, Issue, ErrorLog, Feedback, FeedbackRep
     RecruitmentService,
     ContentService,
     ContentAIService,
+    ProposalsService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })

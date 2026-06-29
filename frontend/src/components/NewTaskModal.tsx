@@ -15,8 +15,8 @@ interface TaskRow {
   images: { file: File; preview: string; base64: string }[];
 }
 
-export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
-  defaultStatus: string; projectId: string; onCreated: (t: Task) => void; onClose: () => void;
+export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose, isManager = false }: {
+  defaultStatus: string; projectId: string; onCreated: (t: Task) => void; onClose: () => void; isManager?: boolean;
 }) {
   const [module, setModule] = useState('');
   const [phase, setPhase] = useState('');
@@ -165,7 +165,8 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
                       placeholder={`Task ${i + 1} title`}
                       className="flex-1 px-2.5 py-1.5 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Assignee mini picker */}
+                      {/* Assignee mini picker — only project managers can assign tasks */}
+                      {isManager && (
                       <div className="relative">
                         <button type="button" onClick={() => setOpenPicker(openPicker === row.id ? null : row.id)}
                           className="flex items-center gap-1 text-[10px] px-2 py-1.5 rounded-lg border bg-white text-gray-500 hover:border-indigo-300">
@@ -192,6 +193,7 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
                           </div>
                         )}
                       </div>
+                      )}
                       <select value={row.priority} onChange={e => updateRow(row.id, 'priority', e.target.value)}
                         className="text-[10px] border rounded-lg px-1.5 py-1.5 bg-white w-20">
                         <option value="low">Low</option><option value="medium">Med</option><option value="high">High</option><option value="critical">Crit</option>

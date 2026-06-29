@@ -1,17 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository, Not, In } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../database/entities';
+import { User, ProjectMember } from '../database/entities';
 
 const PUBLIC_COLS: (keyof User)[] = ['id', 'email', 'first_name', 'last_name', 'avatar_url', 'bio', 'phone', 'system_role', 'is_active', 'created_at'];
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectRepository(User) private users: Repository<User>) {}
+  constructor(
+    @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(ProjectMember) private members: Repository<ProjectMember>,
+  ) {}
 
-  findAll() {
-    return this.users.find({ select: PUBLIC_COLS, order: { created_at: 'ASC' } });
+  async findAll(requesterId?: string, isAdmin = false) {
+    if (isAdmin || !requesterId) {
+      return this.users.find({ select: PUBLIC_COLS, order: { created_at: 'ASC' } });
+    }
+    // Non-admin: return only users who share at least one project with the requester
+    const myMemberships = await this.members.find({ where: { user_id: requesterId } });
+    if (!myMemberships.length) {
+      // Not a member of any project — return only themselves
+      return this.users.find({ where: { id: requesterId }, select: PUBLIC_COLS });
+    }
+    const projectIds = myMemberships.map(m => m.project_id);
+    const coMembers  = await this.members.find({ where: { project_id: In(projectIds) } });
+    const userIds    = [...new Set(coMembers.map(m => m.user_id))];
+    return this.users.find({ where: { id: In(userIds) }, select: PUBLIC_COLS, order: { created_at: 'ASC' } });
   }
 
   async findOne(id: string) {

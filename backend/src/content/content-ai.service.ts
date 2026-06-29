@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ContentDraft, ContentCategory } from '../database/entities';
@@ -16,31 +16,30 @@ export class ContentAIService {
   private get model()    { return process.env.LLM_MODEL || process.env.AI_MODEL || 'gpt-4o-mini'; }
 
   private async callAI(messages: { role: string; content: string }[], temperature = 0.85): Promise<string> {
-    try {
-      if (this.provider === 'claude' || this.provider === 'anthropic') {
-        const key = process.env.ANTHROPIC_API_KEY || '';
-        if (!key) { this.logger.warn('ANTHROPIC_API_KEY not set'); return ''; }
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: this.model, max_tokens: 6000, messages }),
-        });
-        const data = await res.json() as any;
-        if (data.error) { this.logger.error(`Anthropic error: ${JSON.stringify(data.error)}`); return ''; }
-        return data.content?.[0]?.text || '';
-      } else {
-        const key = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
-        const url = process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
-        if (!key) { this.logger.warn('OpenAI key not set'); return ''; }
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: this.model, messages, temperature, max_tokens: 6000 }),
-        });
-        const data = await res.json() as any;
-        return data.choices?.[0]?.message?.content || '';
-      }
-    } catch (e: any) { this.logger.error(`AI call failed: ${e.message}`); return ''; }
+    if (this.provider === 'claude' || this.provider === 'anthropic') {
+      const key = process.env.ANTHROPIC_API_KEY || '';
+      if (!key) throw new BadRequestException('ANTHROPIC_API_KEY is not configured. Set it in your server environment variables.');
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: this.model, max_tokens: 6000, messages }),
+      });
+      const data = await res.json() as any;
+      if (data.error) throw new BadRequestException(`Anthropic API error: ${data.error.message || JSON.stringify(data.error)}`);
+      return data.content?.[0]?.text || '';
+    } else {
+      const key = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
+      const url = process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
+      if (!key) throw new BadRequestException('AI_API_KEY (or OPENAI_API_KEY) is not configured. Set it in your server environment variables.');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ model: this.model, messages, temperature, max_tokens: 6000 }),
+      });
+      const data = await res.json() as any;
+      if (data.error) throw new BadRequestException(`OpenAI API error: ${data.error.message || JSON.stringify(data.error)}`);
+      return data.choices?.[0]?.message?.content || '';
+    }
   }
 
   private parseJSON(raw: string): any {

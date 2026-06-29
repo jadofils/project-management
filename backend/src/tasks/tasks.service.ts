@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Task, TaskAssignmentLog, User, Project, ProjectMember } from '../database/entities';
@@ -35,6 +35,23 @@ export class TasksService {
   }
 
   async create(userId: string, dto: any) {
+    // Only project managers may assign tasks to others on creation
+    const requestedIds: string[] = dto.assignee_ids?.length ? dto.assignee_ids : (dto.assignee_id ? [dto.assignee_id] : []);
+    const assigningToOthers = requestedIds.some(id => id !== userId);
+    if (assigningToOthers) {
+      const actor = await this.users.findOne({ where: { id: userId } });
+      if (actor?.system_role !== 'admin') {
+        const actorMember = await this.members.findOne({ where: { project_id: dto.project_id, user_id: userId } });
+        const roles = (actorMember?.roles?.length ? actorMember.roles : [actorMember?.role]).filter(Boolean);
+        const isManager = roles.includes('project_manager') || actorMember?.permission_level === 'manager';
+        if (!isManager) {
+          // Strip assignees — non-managers can only create tasks for themselves
+          delete dto.assignee_ids;
+          delete dto.assignee_id;
+        }
+      }
+    }
+
     const count = await this.repo.count({ where: { project_id: dto.project_id, status: dto.status || 'todo' } });
     const payload = { ...dto, sort_order: count, created_by: userId };
     if (dto.due_date) payload.original_due_date = dto.due_date;
@@ -63,6 +80,20 @@ export class TasksService {
   async update(id: string, dto: any) {
     const before = await this.repo.findOne({ where: { id } });
     if (!before) throw new NotFoundException();
+
+    // Only project managers (or admins) may reassign tasks
+    const isChangingAssignees = 'assignee_ids' in dto || 'assignee_id' in dto;
+    if (isChangingAssignees && dto._actor_id) {
+      const actor = await this.users.findOne({ where: { id: dto._actor_id } });
+      if (actor?.system_role !== 'admin') {
+        const actorMember = await this.members.findOne({ where: { project_id: before.project_id, user_id: dto._actor_id } });
+        const roles = (actorMember?.roles?.length ? actorMember.roles : [actorMember?.role]).filter(Boolean);
+        const isManager = roles.includes('project_manager') || actorMember?.permission_level === 'manager';
+        if (!isManager) {
+          throw new ForbiddenException('Only project managers can assign tasks to team members');
+        }
+      }
+    }
 
     const prevAssigneeIds = before.assignee_ids || (before.assignee_id ? [before.assignee_id] : []);
     const prevStatus      = before.status;

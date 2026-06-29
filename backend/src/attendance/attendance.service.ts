@@ -88,6 +88,37 @@ export class AttendanceService {
     }
   }
 
+  // ── Login-based clock in (called automatically on user login) ────────────
+  async loginClockIn(userId: string, ip?: string) {
+    const today = new Date().toISOString().slice(0, 10);
+    const existing = await this.records.findOne({ where: { user_id: userId, date: today } });
+    if (existing) return existing; // already has a record for today (QR / prior login)
+
+    const record = this.records.create({
+      user_id: userId,
+      date: today,
+      clock_in: new Date(),
+      method: 'login',
+      ip_address: ip || null,
+      verified: true,
+      status: 'present',
+    } as any) as unknown as AttendanceRecord;
+
+    return this.records.save(record);
+  }
+
+  // ── Login-based clock out (called on logout or page close) ───────────────
+  async loginClockOut(userId: string) {
+    const today = new Date().toISOString().slice(0, 10);
+    const record = await this.records.findOne({ where: { user_id: userId, date: today } });
+    if (!record || !record.clock_in || record.clock_out) return null;
+
+    record.clock_out = new Date();
+    record.duration_minutes = Math.round((record.clock_out.getTime() - record.clock_in.getTime()) / 60_000);
+    record.status = this.determineStatus(record.clock_in, record.clock_out);
+    return this.records.save(record);
+  }
+
   // ── Today's attendance ─────────────────────────────────────────────────────
   async getToday() {
     const today = new Date().toISOString().slice(0, 10);

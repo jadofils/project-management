@@ -55,39 +55,39 @@ export const TaskCard = React.memo(function TaskCard({
         <div
           ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
           onClick={() => onOpen(task)}
-          className={`bg-white rounded-xl border p-3 shadow-sm hover:shadow-md transition-all cursor-pointer select-none ${snapshot.isDragging ? 'shadow-lg rotate-1 ring-2 ring-indigo-300' : ''}`}
+          className={`bg-white rounded-xl border p-3.5 shadow-sm hover:shadow-md transition-all cursor-pointer select-none ${snapshot.isDragging ? 'shadow-lg rotate-1 ring-2 ring-indigo-300' : ''}`}
         >
           {task.module && (
-            <p className="text-[10px] font-semibold text-indigo-400 mb-0.5 truncate">{task.module}</p>
+            <p className="text-xs font-semibold text-indigo-400 mb-0.5 truncate">{task.module}</p>
           )}
-          <p className="text-sm font-medium text-gray-800 leading-snug">{task.title}</p>
-          {task.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.description}</p>}
+          <p className="text-[15px] font-semibold text-gray-800 leading-snug">{task.title}</p>
+          {task.description && <p className="text-sm text-gray-400 mt-1 line-clamp-2">{task.description}</p>}
 
           {task.subtask_count > 0 && (
             <div className="mt-2">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] text-gray-400">{task.subtasks_done}/{task.subtask_count} subtasks</span>
-                <span className="text-[10px] text-indigo-500 font-medium">{Math.round((task.subtasks_done / task.subtask_count) * 100)}%</span>
+                <span className="text-xs text-gray-400">{task.subtasks_done}/{task.subtask_count} subtasks</span>
+                <span className="text-xs text-indigo-500 font-medium">{Math.round((task.subtasks_done / task.subtask_count) * 100)}%</span>
               </div>
-              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${task.subtasks_done === task.subtask_count ? 'bg-green-500' : 'bg-indigo-400'}`}
                   style={{ width: `${Math.round((task.subtasks_done / task.subtask_count) * 100)}%` }} />
               </div>
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold capitalize ${PRIORITY_COLORS[task.priority] || 'bg-gray-100 text-gray-600'}`}>
+          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+            <span className={`text-xs px-2 py-0.5 rounded-md font-semibold capitalize ${PRIORITY_COLORS[task.priority] || 'bg-gray-100 text-gray-600'}`}>
               {task.priority}
             </span>
             {task.phase && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold">
+              <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold">
                 {PHASE_SHORT[task.phase] || task.phase}
               </span>
             )}
             {task.due_date && (
-              <span className={`text-[10px] flex items-center gap-0.5 font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
-                <Calendar className="w-3 h-3" />
+              <span className={`text-xs flex items-center gap-0.5 font-medium ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+                <Calendar className="w-3.5 h-3.5" />
                 {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
             )}
@@ -95,12 +95,12 @@ export const TaskCard = React.memo(function TaskCard({
               <div className="ml-auto flex -space-x-1">
                 {assignees.slice(0, 3).map(u => (
                   <div key={u.id} title={userName(u)}
-                    className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[8px] font-bold ring-1 ring-white shrink-0">
+                    className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[9px] font-bold ring-2 ring-white shrink-0">
                     {userInitials(u)}
                   </div>
                 ))}
                 {assignees.length > 3 && (
-                  <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-[8px] font-bold ring-1 ring-white shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-[9px] font-bold ring-2 ring-white shrink-0">
                     +{assignees.length - 3}
                   </div>
                 )}
@@ -109,8 +109,8 @@ export const TaskCard = React.memo(function TaskCard({
           </div>
 
           {task.status === 'done' && task.completed_at && (
-            <div className="mt-1.5 flex items-center gap-1 text-[10px] text-green-600 font-medium">
-              <CheckCircle2 className="w-3 h-3 shrink-0" />
+            <div className="mt-1.5 flex items-center gap-1 text-xs text-green-600 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
               <span>
                 {new Date(task.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 {confirmedByUser && ` · ${confirmedByUser.first_name}`}
@@ -119,22 +119,22 @@ export const TaskCard = React.memo(function TaskCard({
           )}
 
           {isMember && (
-            <div className="mt-2 pt-1.5 border-t border-gray-100 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center gap-1" onClick={e => e.stopPropagation()}>
               <button
                 onClick={e => { e.stopPropagation(); onLike?.(task); }}
                 title={isLiked ? 'Unlike' : 'Like'}
-                className={`flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-lg font-medium transition-colors ${isLiked ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-400 hover:bg-red-50'}`}
+                className={`flex items-center gap-0.5 text-xs px-2 py-1 rounded-lg font-medium transition-colors ${isLiked ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-400 hover:bg-red-50'}`}
               >
-                <Heart className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} />
+                <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
                 {likedBy.length > 0 && <span>{likedBy.length}</span>}
               </button>
 
               <button
                 onClick={e => { e.stopPropagation(); onOpen(task); }}
                 title="Open & comment"
-                className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                className="flex items-center gap-0.5 text-xs px-2 py-1 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
               >
-                <MessageSquare className="w-3 h-3" />
+                <MessageSquare className="w-3.5 h-3.5" />
               </button>
 
               <div className="ml-auto flex items-center gap-1">
@@ -142,15 +142,15 @@ export const TaskCard = React.memo(function TaskCard({
                   <button
                     onClick={e => { e.stopPropagation(); onAskHelp(task); }}
                     title="Ask for help"
-                    className="text-[10px] px-1.5 py-0.5 rounded-lg font-medium text-amber-500 hover:bg-amber-50 flex items-center gap-0.5"
+                    className="text-xs px-2 py-1 rounded-lg font-medium text-amber-500 hover:bg-amber-50 flex items-center gap-0.5"
                   >
-                    <HelpCircle className="w-2.5 h-2.5" />Help
+                    <HelpCircle className="w-3 h-3" />Help
                   </button>
                 )}
                 {rejectAction && (
                   <button
                     onClick={e => { e.stopPropagation(); onQuickStatus?.(task, rejectAction.status); }}
-                    className={`text-[10px] px-2 py-0.5 rounded-lg font-medium transition-colors ${rejectAction.cls}`}
+                    className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${rejectAction.cls}`}
                   >
                     {rejectAction.label}
                   </button>
@@ -158,9 +158,9 @@ export const TaskCard = React.memo(function TaskCard({
                 {quickAction && (
                   <button
                     onClick={e => { e.stopPropagation(); onQuickStatus?.(task, quickAction.status); }}
-                    className={`flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-lg font-medium transition-colors ${quickAction.cls}`}
+                    className={`flex items-center gap-0.5 text-xs px-2 py-1 rounded-lg font-medium transition-colors ${quickAction.cls}`}
                   >
-                    {quickAction.label}<ArrowRight className="w-2.5 h-2.5" />
+                    {quickAction.label}<ArrowRight className="w-3 h-3" />
                   </button>
                 )}
               </div>

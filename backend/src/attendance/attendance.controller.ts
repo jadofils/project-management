@@ -37,6 +37,20 @@ export class AttendanceController {
   @Post('offices') @UseGuards(AdminGuard)
   createOffice(@Body() dto: any) { return this.svc.createOffice(dto); }
 
+  // ── Login-based attendance ────────────────────────────────────────────────
+  @Post('login')
+  @UseGuards(JwtAuthGuard)
+  loginClockIn(@Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || null;
+    return this.svc.loginClockIn(req.user.sub, typeof ip === 'string' ? ip.split(',')[0].trim() : ip);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  loginClockOut(@Req() req: any) {
+    return this.svc.loginClockOut(req.user.sub);
+  }
+
   // ── IVR Phone Call (public — no JWT, called by Twilio/Africa's Talking) ──
   @Post('ivr')
   async handleIvr(@Body() body: { callerId?: string; From?: string; Digits?: string }) {

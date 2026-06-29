@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard, AdminGuard } from '../auth/jwt.guard';
 
@@ -8,7 +8,9 @@ export class UsersController {
   constructor(private svc: UsersService) {}
 
   @Get()
-  findAll() { return this.svc.findAll(); }
+  findAll(@Req() req: any) {
+    return this.svc.findAll(req.user.sub, req.user.system_role === 'admin');
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) { return this.svc.findOne(id); }

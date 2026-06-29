@@ -105,6 +105,15 @@ export function AuthPage({ onAuth }: Props) {
                 Set Password & Continue
               </button>
             </form>
+            <div className="mt-4 pt-4 border-t text-center">
+              <button
+                type="button"
+                onClick={() => { setPendingUser(null); setNewPwd(''); setNewPwdConfirm(''); setError(''); }}
+                className="text-sm text-gray-400 hover:text-indigo-600 transition-colors"
+              >
+                ← Back to login
+              </button>
+            </div>
           </div>
         </div>
       </div>
