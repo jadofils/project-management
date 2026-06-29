@@ -197,6 +197,30 @@ function EditUserModal({ user, onUpdated, onClose }: { user: User; onUpdated: (u
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
+// ── Reset Passwords Button ────────────────────────────────────────────────────
+function ResetPasswordsButton() {
+  const [loading, setLoading] = useState(false);
+  const run = async () => {
+    if (!confirm('Reset ALL user passwords to Password123! (except the admin account)?\n\nUsers will be required to change it on next login.')) return;
+    setLoading(true);
+    try {
+      const res = await api.adminResetPasswords();
+      toast.success(`Done — ${res.updated} passwords reset to Password123!`);
+    } catch (e: any) {
+      toast.error(e.message || 'Reset failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button onClick={run} disabled={loading}
+      className="flex items-center gap-1.5 text-sm px-3 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 font-medium shadow-sm">
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+      Reset Passwords
+    </button>
+  );
+}
+
 export function UsersAdminPage({ currentUser, projectId }: Props) {
   const [users, setUsers]             = useState<User[]>([]);
   const [members, setMembers]         = useState<Member[]>([]);
@@ -370,10 +394,13 @@ export function UsersAdminPage({ currentUser, projectId }: Props) {
             <Mail className="w-3.5 h-3.5 text-indigo-500" />Email
           </button>
           {isAdmin && (
-            <button onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium shadow-sm">
-              <Plus className="w-3.5 h-3.5" />Invite User
-            </button>
+            <>
+              <button onClick={() => setShowCreate(true)}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium shadow-sm">
+                <Plus className="w-3.5 h-3.5" />Invite User
+              </button>
+              <ResetPasswordsButton />
+            </>
           )}
         </div>
       </div>

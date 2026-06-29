@@ -25,7 +25,7 @@ export class InvitationsService {
   async invite(
     projectId: string,
     invitedById: string,
-    dto: { email: string; role: string; permission_level?: string },
+    dto: { email: string; role: string; permission_level?: string; role_description?: string },
   ) {
     const [project, inviter] = await Promise.all([
       this.projects.findOne({ where: { id: projectId } }),
@@ -47,7 +47,7 @@ export class InvitationsService {
       if (isMember) throw new ConflictException('User is already a member of this project');
 
       // Add directly
-      const m = this.members.create({ project_id: projectId, user_id: existingUser.id, role: role as any, roles: [role] as any, permission_level: permLevel } as any);
+      const m = this.members.create({ project_id: projectId, user_id: existingUser.id, role: role as any, roles: [role] as any, permission_level: permLevel, role_description: dto.role_description || null } as any);
       await this.members.save(m);
 
       // Notify them

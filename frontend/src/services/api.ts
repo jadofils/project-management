@@ -222,6 +222,7 @@ export interface Member {
   role: string;
   roles: string[];
   permission_level: 'viewer' | 'contributor' | 'editor' | 'manager';
+  role_description?: string | null;
   joined_at: string;
   user?: User;
 }
@@ -312,14 +313,15 @@ export const api = {
 
   // Members
   getMembers: (projectId: string) => request<Member[]>(`/projects/${projectId}/members`),
-  addMember: (projectId: string, userId: string, role: string, roles?: string[], permission_level?: string) =>
-    request<Member>(`/projects/${projectId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId, role, roles, permission_level }) }),
-  addMembersBulk: (projectId: string, userIds: string[], role: string, permission_level?: string) =>
-    request<Member[]>(`/projects/${projectId}/members/bulk`, { method: 'POST', body: JSON.stringify({ user_ids: userIds, role, permission_level }) }),
-  updateMember: (projectId: string, userId: string, dto: { role?: string; roles?: string[]; permission_level?: string }) =>
+  addMember: (projectId: string, userId: string, role: string, roles?: string[], permission_level?: string, role_description?: string) =>
+    request<Member>(`/projects/${projectId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId, role, roles, permission_level, role_description }) }),
+  addMembersBulk: (projectId: string, userIds: string[], role: string, permission_level?: string, role_description?: string) =>
+    request<Member[]>(`/projects/${projectId}/members/bulk`, { method: 'POST', body: JSON.stringify({ user_ids: userIds, role, permission_level, role_description }) }),
+  updateMember: (projectId: string, userId: string, dto: { role?: string; roles?: string[]; permission_level?: string; role_description?: string }) =>
     request<Member>(`/projects/${projectId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify(dto) }),
   removeMember: (projectId: string, userId: string) =>
     request<void>(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
+  adminResetPasswords: () => request<{ ok: boolean; updated: number; excluded: string }>('/admin/reset-passwords', { method: 'POST' }),
 
   // Messages
   getMessages: (projectId: string) => request<Message[]>(`/projects/${projectId}/messages`),
@@ -349,9 +351,9 @@ export const api = {
     request<{ date: string; count: number }[]>(`/contributions/system/summary${year ? `?year=${year}` : ''}`),
 
   // Invitations
-  inviteByEmail: (projectId: string, email: string, role: string, permission_level?: string) =>
+  inviteByEmail: (projectId: string, email: string, role: string, permission_level?: string, role_description?: string) =>
     request<{ status: string; message: string; userExists?: boolean; user?: User }>(
-      `/projects/${projectId}/invite`, { method: 'POST', body: JSON.stringify({ email, role, permission_level }) }),
+      `/projects/${projectId}/invite`, { method: 'POST', body: JSON.stringify({ email, role, permission_level, role_description }) }),
   getInvitations: (projectId: string) => request<Invitation[]>(`/projects/${projectId}/invitations`),
   cancelInvitation: (projectId: string, invId: string) =>
     request<{ ok: boolean }>(`/projects/${projectId}/invitations/${invId}`, { method: 'DELETE' }),

@@ -77,6 +77,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [addRoles, setAddRoles]       = useState<string[]>(['backend_dev']);
   const [addPermLevel, setAddPermLevel] = useState('editor');
+  const [addRoleDesc, setAddRoleDesc] = useState('');
   const [adding, setAdding]           = useState(false);
   const [showAdd, setShowAdd]         = useState(false);
   const [addMode, setAddMode]         = useState<'users' | 'invite'>('users');
@@ -85,6 +86,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
   const [inviteEmail, setInviteEmail]   = useState('');
   const [inviteRole, setInviteRole]     = useState('backend_dev');
   const [invitePerm, setInvitePerm]     = useState('editor');
+  const [inviteRoleDesc, setInviteRoleDesc] = useState('');
   const [inviting, setInviting]         = useState(false);
   const [invitations, setInvitations]   = useState<Invitation[]>([]);
   const [loadingInv, setLoadingInv]     = useState(false);
@@ -104,7 +106,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      const res = await api.inviteByEmail(projectId, inviteEmail.trim(), inviteRole, invitePerm);
+      const res = await api.inviteByEmail(projectId, inviteEmail.trim(), inviteRole, invitePerm, inviteRoleDesc.trim() || undefined);
       toast.success(res.message);
       setInviteEmail('');
       // Refresh invitations list
@@ -156,6 +158,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
         [...selectedIds],
         addRoles[0],
         addPermLevel,
+        addRoleDesc.trim() || undefined,
       );
       const users = allUsers.filter(u => selectedIds.has(u.id));
       const withRoles = newMembers.map(m => ({
@@ -172,7 +175,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
     finally { setAdding(false); }
   };
 
-  const updateMember = async (m: Member, dto: { roles?: string[]; permission_level?: string }) => {
+  const updateMember = async (m: Member, dto: { roles?: string[]; permission_level?: string; role_description?: string }) => {
     try {
       const updated = await api.updateMember(projectId, m.user_id, {
         ...dto,
@@ -259,7 +262,7 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
           {/* ── Existing Users Tab ─────────────────────── */}
           {addMode === 'users' && (<>
             {/* Roles + permission for new members */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Assign Roles</label>
                 <RolesDropdown value={addRoles} onChange={setAddRoles} />
@@ -273,6 +276,14 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+                Role Description <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input value={addRoleDesc} onChange={e => setAddRoleDesc(e.target.value)}
+                placeholder="e.g. Responsible for API design and database schema"
+                className="w-full text-sm border rounded-xl px-3 py-2 bg-white focus:ring-2 focus:ring-indigo-300 outline-none" />
             </div>
 
             {/* User search */}
@@ -359,6 +370,14 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
                     {PERMISSION_LEVELS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                  Role Description <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input value={inviteRoleDesc} onChange={e => setInviteRoleDesc(e.target.value)}
+                  placeholder="e.g. Leads frontend architecture and code reviews"
+                  className="w-full text-sm border rounded-xl px-3 py-2 bg-white focus:ring-2 focus:ring-indigo-300 outline-none" />
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-white rounded-xl border">Cancel</button>
@@ -464,6 +483,9 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
                             </span>
                           ))}
                         </div>
+                        {m.role_description && (
+                          <p className="text-[11px] text-gray-400 mt-1 leading-tight italic">{m.role_description}</p>
+                        )}
                       </div>
 
                       {/* Permission level badge + dropdown */}
@@ -487,6 +509,13 @@ export function MembersPanel({ projectId, currentUserId, isManager }: Props) {
                               <option key={p.value} value={p.value}>{p.label}</option>
                             ))}
                           </select>
+                          {/* Role description inline edit */}
+                          <input
+                            defaultValue={m.role_description || ''}
+                            placeholder="Role description (optional)"
+                            onBlur={e => { if (e.target.value !== (m.role_description || '')) updateMember(m, { role_description: e.target.value }); }}
+                            className="w-full text-[11px] px-2.5 py-1 border rounded-lg bg-white text-gray-500 placeholder-gray-300 focus:ring-1 focus:ring-indigo-200 outline-none"
+                          />
                         </div>
                       ) : (
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0 ${permDef.color}`}>

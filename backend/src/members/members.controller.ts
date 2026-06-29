@@ -13,20 +13,20 @@ export class MembersController {
   }
 
   @Post()
-  add(@Param('projectId') pid: string, @Body() body: { user_id: string; role: any; roles?: any[]; permission_level?: string }) {
-    return this.svc.add(pid, body.user_id, body.role, body.roles, body.permission_level);
+  add(@Param('projectId') pid: string, @Body() body: { user_id: string; role: any; roles?: any[]; permission_level?: string; role_description?: string }) {
+    return this.svc.add(pid, body.user_id, body.role, body.roles, body.permission_level, body.role_description);
   }
 
   @Post('bulk')
-  addBulk(@Param('projectId') pid: string, @Body() body: { user_ids: string[]; role: any; permission_level?: string }) {
-    return this.svc.addBulk(pid, body.user_ids, body.role, body.permission_level);
+  addBulk(@Param('projectId') pid: string, @Body() body: { user_ids: string[]; role: any; permission_level?: string; role_description?: string }) {
+    return this.svc.addBulk(pid, body.user_ids, body.role, body.permission_level, body.role_description);
   }
 
   @Patch(':userId')
   update(
     @Param('projectId') pid: string,
     @Param('userId') uid: string,
-    @Body() body: { role?: any; roles?: any[]; permission_level?: string },
+    @Body() body: { role?: any; roles?: any[]; permission_level?: string; role_description?: string },
   ) {
     return this.svc.updateMember(pid, uid, body);
   }

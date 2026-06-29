@@ -15,12 +15,13 @@ export class MembersService {
     });
   }
 
-  async add(projectId: string, userId: string, role: ProjectRole, roles?: ProjectRole[], permissionLevel?: string) {
+  async add(projectId: string, userId: string, role: ProjectRole, roles?: ProjectRole[], permissionLevel?: string, roleDescription?: string) {
     const existing = await this.members.findOne({ where: { project_id: projectId, user_id: userId } });
     if (existing) {
       existing.role             = role;
       existing.roles            = roles || [role];
       existing.permission_level = permissionLevel || existing.permission_level || 'editor';
+      if (roleDescription !== undefined) existing.role_description = roleDescription || null;
       const saved = await this.members.save(existing);
       return this.members.findOne({ where: { id: saved.id }, relations: ['user'] });
     }
@@ -30,26 +31,29 @@ export class MembersService {
       role,
       roles:            roles || [role],
       permission_level: permissionLevel || 'editor',
+      role_description: roleDescription || null,
     } as any);
     const saved = await this.members.save(m) as unknown as ProjectMember;
     return this.members.findOne({ where: { id: saved.id }, relations: ['user'] });
   }
 
-  async addBulk(projectId: string, userIds: string[], role: ProjectRole, permissionLevel = 'editor') {
-    return Promise.all(userIds.map(uid => this.add(projectId, uid, role, [role], permissionLevel)));
+  async addBulk(projectId: string, userIds: string[], role: ProjectRole, permissionLevel = 'editor', roleDescription?: string) {
+    return Promise.all(userIds.map(uid => this.add(projectId, uid, role, [role], permissionLevel, roleDescription)));
   }
 
   async updateMember(projectId: string, userId: string, dto: {
     role?: ProjectRole;
     roles?: ProjectRole[];
     permission_level?: string;
+    role_description?: string;
   }) {
     const m = await this.members.findOne({ where: { project_id: projectId, user_id: userId } });
     if (!m) throw new NotFoundException('Member not found');
-    if (dto.role)             m.role = dto.role;
-    if (dto.roles)            m.roles = dto.roles;
-    if (dto.permission_level) m.permission_level = dto.permission_level;
-    if (dto.roles?.length)    m.role = dto.roles[0];
+    if (dto.role)                          m.role = dto.role;
+    if (dto.roles)                         m.roles = dto.roles;
+    if (dto.permission_level)              m.permission_level = dto.permission_level;
+    if (dto.roles?.length)                 m.role = dto.roles[0];
+    if (dto.role_description !== undefined) m.role_description = dto.role_description || null;
     const saved = await this.members.save(m);
     return this.members.findOne({ where: { id: saved.id }, relations: ['user'] });
   }

@@ -112,6 +112,7 @@ export class ProjectMember {
   @Column({ type: 'varchar', length: 30, default: 'backend_dev' }) role!: ProjectRole;
   @Column({ type: 'simple-json', nullable: true }) roles!: ProjectRole[] | null;
   @Column({ type: 'varchar', length: 20, default: 'editor' }) permission_level!: string;
+  @Column({ type: 'text', nullable: true }) role_description!: string | null;
   @CreateDateColumn() joined_at!: Date;
   @ManyToOne(() => Project, (p: Project) => p.members, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'project_id' }) project!: Project;
   @ManyToOne(() => User, (u: User) => u.memberships, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'user_id' }) user!: User;
