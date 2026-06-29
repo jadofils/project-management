@@ -6,6 +6,179 @@ import { Download, X, Play, Square as StopIcon, Music, Upload, Film, ChevronLeft
 import { toast } from 'sonner';
 import { CARD_THEMES, FONT_OPTIONS, drawCardToCanvas, drawDialogCardToCanvas, type CardTheme, type ExportFormat } from '../lib/contentExport';
 
+// ── Wave types & corners ─────────────────────────────────────────────────────
+export type WaveStyle = 'ribbon' | 'particle' | 'both';
+export type Corner    = 'TL' | 'TR' | 'BL' | 'BR';
+
+const CORNER_BASE_ANGLE: Record<Corner, number> = {
+  TL: (Math.PI * 3) / 4,
+  TR:  Math.PI / 4,
+  BL: (Math.PI * 5) / 4,
+  BR: (Math.PI * 7) / 4,
+};
+
+/** outward XY position of a corner given card width/height */
+function cornerXY(c: Corner, w: number, h: number): [number, number] {
+  return {
+    TL: [-w / 2,  h / 2] as [number,number],
+    TR: [ w / 2,  h / 2] as [number,number],
+    BL: [-w / 2, -h / 2] as [number,number],
+    BR: [ w / 2, -h / 2] as [number,number],
+  }[c];
+}
+
+// ── Animated ribbon strand at a corner (GPU-friendly: mutates buffer in-place) ──
+function RibbonStrand({
+  cx, cy, baseAngle, idx, total, hexColor, speed = 1,
+}: {
+  cx: number; cy: number; baseAngle: number; idx: number; total: number;
+  hexColor: string; speed?: number;
+}) {
+  const POINTS = 42;
+  const spread  = Math.PI * 0.55;
+  const frac    = total > 1 ? idx / (total - 1) : 0.5;
+  const stAngle = baseAngle + (frac - 0.5) * spread;
+  const phase   = frac * Math.PI * 2;
+  const maxDist = 0.48 + (idx % 2) * 0.08;
+
+  const posArr = useMemo(() => new Float32Array(POINTS * 3), []);
+  const geo    = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+    return g;
+  }, [posArr]);
+  const mat = useMemo(() => {
+    // Shift color slightly per strand toward white for outer strands
+    const base = new THREE.Color(hexColor);
+    base.lerp(new THREE.Color('#ffffff'), idx / (total * 2.5));
+    return new THREE.LineBasicMaterial({
+      color: base,
+      transparent: true,
+      opacity: Math.max(0.12, 0.78 - idx * 0.11),
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+  }, [hexColor, idx, total]);
+  const line = useMemo(() => new THREE.Line(geo, mat), [geo, mat]);
+
+  useFrame(() => {
+    const t = Date.now() * 0.001 * speed;
+    for (let i = 0; i < POINTS; i++) {
+      const p    = i / (POINTS - 1);
+      const dist = p * maxDist;
+      const sway = Math.sin(t * (1.3 + idx * 0.25) + phase) * 0.22 * p;
+      const wZ   = Math.sin(p * Math.PI * (2.5 + idx * 0.6) - t * (3.5 + idx * 0.35) + phase) * 0.13 * p;
+      const ang  = stAngle + sway;
+      posArr[i * 3]     = cx + Math.cos(ang) * dist;
+      posArr[i * 3 + 1] = cy + Math.sin(ang) * dist;
+      posArr[i * 3 + 2] = wZ;
+    }
+    geo.attributes.position.needsUpdate = true;
+  });
+
+  return <primitive object={line} />;
+}
+
+// ── Particle burst at a corner ───────────────────────────────────────────────
+function CornerParticles({
+  cx, cy, baseAngle, hexColor, speed = 1,
+}: {
+  cx: number; cy: number; baseAngle: number; hexColor: string; speed?: number;
+}) {
+  const N = 90;
+  const posArr = useMemo(() => new Float32Array(N * 3), []);
+  const geo    = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+    return g;
+  }, [posArr]);
+  const mat = useMemo(() => new THREE.PointsMaterial({
+    color: new THREE.Color(hexColor),
+    size:  0.028,
+    transparent: true,
+    opacity: 0.88,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    sizeAttenuation: true,
+  }), [hexColor]);
+  const pts = useMemo(() => new THREE.Points(geo, mat), [geo, mat]);
+
+  // Per-particle state, stable across renders
+  const state = useMemo(() => Array.from({ length: N }, (_, i) => {
+    const s   = 0.12 + Math.random() * 0.32;
+    const ang = baseAngle + (Math.random() - 0.5) * Math.PI * 0.7;
+    return {
+      vx: Math.cos(ang) * s,
+      vy: Math.sin(ang) * s,
+      vz: (Math.random() - 0.5) * 0.09,
+      life: Math.random(),
+      maxLife: 0.9 + Math.random() * 0.9,
+      wPhase: Math.random() * Math.PI * 2,
+      wFreq:  2.5 + Math.random() * 3.5,
+    };
+  }), [baseAngle]);
+
+  useFrame((_, dt) => {
+    const t = Date.now() * 0.001 * speed;
+    for (let i = 0; i < N; i++) {
+      const s = state[i];
+      s.life += dt * 0.55 * speed;
+      if (s.life > s.maxLife) s.life = Math.random() * 0.05;
+      const p   = s.life / s.maxLife;
+      const wZ  = Math.sin(s.wPhase + t * 4 + p * Math.PI * s.wFreq) * 0.065 * p;
+      posArr[i * 3]     = cx + s.vx * p;
+      posArr[i * 3 + 1] = cy + s.vy * p;
+      posArr[i * 3 + 2] = wZ + s.vz * p;
+    }
+    geo.attributes.position.needsUpdate = true;
+  });
+
+  return <primitive object={pts} />;
+}
+
+// ── Pulsing glow orb at the corner itself ────────────────────────────────────
+function CornerOrb({ cx, cy, hexColor }: { cx: number; cy: number; hexColor: string }) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  useFrame(() => {
+    const s = 0.038 + Math.sin(Date.now() * 0.004) * 0.012;
+    if (meshRef.current) meshRef.current.scale.setScalar(s / 0.04);
+  });
+  return (
+    <mesh ref={meshRef} position={[cx, cy, 0.01]}>
+      <sphereGeometry args={[0.04, 10, 10]} />
+      <meshBasicMaterial color={hexColor} transparent opacity={0.9} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </mesh>
+  );
+}
+
+// ── Full corner wave group (ribbons + particles + orb) ────────────────────────
+function CornerWaveGroup({
+  corner, aspect, hexColor, style, speed,
+}: {
+  corner: Corner; aspect: number; hexColor: string; style: WaveStyle; speed: number;
+}) {
+  const h  = 2;
+  const w  = h / aspect;
+  const [cx, cy] = cornerXY(corner, w, h);
+  const baseAngle = CORNER_BASE_ANGLE[corner];
+  const STRANDS = 6;
+
+  return (
+    <>
+      {(style === 'ribbon' || style === 'both') && (
+        Array.from({ length: STRANDS }, (_, i) => (
+          <RibbonStrand key={i} cx={cx} cy={cy} baseAngle={baseAngle}
+            idx={i} total={STRANDS} hexColor={hexColor} speed={speed} />
+        ))
+      )}
+      {(style === 'particle' || style === 'both') && (
+        <CornerParticles cx={cx} cy={cy} baseAngle={baseAngle} hexColor={hexColor} speed={speed} />
+      )}
+      <CornerOrb cx={cx} cy={cy} hexColor={hexColor} />
+    </>
+  );
+}
+
 // ── 3D Template definitions ──────────────────────────────────────────────────
 export type Template3D = 'float' | 'prismatic' | 'parallax';
 
@@ -119,7 +292,13 @@ function ParallaxCard({ texture, aspect }: { texture: THREE.CanvasTexture; aspec
 }
 
 // ── Scene wrapper per template ────────────────────────────────────────────────
-function Scene({ template, texture, aspect }: { template: Template3D; texture: THREE.CanvasTexture; aspect: number }) {
+function Scene({
+  template, texture, aspect,
+  waveCorners, waveStyle, waveSpeed, waveColor,
+}: {
+  template: Template3D; texture: THREE.CanvasTexture; aspect: number;
+  waveCorners: Corner[]; waveStyle: WaveStyle; waveSpeed: number; waveColor: string;
+}) {
   const bgColors: Record<Template3D, string> = {
     float:     '#0d1117',
     prismatic: '#0a0818',
@@ -140,6 +319,10 @@ function Scene({ template, texture, aspect }: { template: Template3D; texture: T
       {template === 'float'     && <FloatCard     texture={texture} aspect={aspect} />}
       {template === 'prismatic' && <PrismaticCard texture={texture} aspect={aspect} />}
       {template === 'parallax'  && <ParallaxCard  texture={texture} aspect={aspect} />}
+      {waveCorners.map(c => (
+        <CornerWaveGroup key={c} corner={c} aspect={aspect}
+          hexColor={waveColor} style={waveStyle} speed={waveSpeed} />
+      ))}
     </>
   );
 }
@@ -170,6 +353,11 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onCl
   const [playing, setPlaying]     = useState(false);
   const [recording, setRecording] = useState(false);
   const [idx, setIdx]             = useState(initialIdx);
+  // Corner waves
+  const [waveCorners, setWaveCorners] = useState<Corner[]>(['TL', 'TR', 'BL', 'BR']);
+  const [waveStyle, setWaveStyle]     = useState<WaveStyle>('ribbon');
+  const [waveSpeed, setWaveSpeed]     = useState(1.0);
+  const [waveColorOverride, setWaveColorOverride] = useState('');
   const glRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -182,7 +370,8 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onCl
     [item, theme, fontId, format, wm, showWm]
   );
 
-  const aspect = format === 'reel' ? 1920 / 1080 : 1;
+  const aspect    = format === 'reel' ? 1920 / 1080 : 1;
+  const waveColor = waveColorOverride || theme.accentColor;
 
   const handleMusicUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -313,7 +502,9 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onCl
         {/* 3D Viewport */}
         <div className="flex-1 relative">
           <Canvas gl={{ preserveDrawingBuffer: true }} shadows>
-            <Scene template={template} texture={texture} aspect={aspect} />
+            <Scene template={template} texture={texture} aspect={aspect}
+              waveCorners={waveCorners} waveStyle={waveStyle}
+              waveSpeed={waveSpeed} waveColor={waveColor} />
             <CaptureButton glRef={glRef} itemTitle={item.title} format={format} />
           </Canvas>
 
@@ -394,6 +585,98 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onCl
                   <p className="text-[10px] text-gray-500 mt-0.5">{t.desc}</p>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* ── Corner Waves ─────────────────────────────────────────── */}
+          <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 p-3 space-y-3">
+            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse inline-block" />
+              Corner Waves
+            </p>
+
+            {/* Wave style */}
+            <div>
+              <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">Style</p>
+              <div className="flex gap-1.5">
+                {(['ribbon','particle','both'] as WaveStyle[]).map(s => (
+                  <button key={s} onClick={() => setWaveStyle(s)}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all capitalize ${waveStyle === s ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-white/15 text-gray-500 hover:border-white/30 hover:text-gray-300'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Which corners */}
+            <div>
+              <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">Active Corners</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['TL','TR','BL','BR'] as Corner[]).map(c => {
+                  const active = waveCorners.includes(c);
+                  const labels: Record<Corner, string> = { TL:'↖ Top Left', TR:'↗ Top Right', BL:'↙ Bot Left', BR:'↘ Bot Right' };
+                  return (
+                    <button key={c} onClick={() => setWaveCorners(prev =>
+                      prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+                    )}
+                      className={`py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${active ? 'bg-indigo-700/60 border-indigo-500 text-indigo-300' : 'border-white/10 text-gray-600 hover:border-white/25 hover:text-gray-400'}`}>
+                      {labels[c]}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Preset shortcuts */}
+              <div className="flex gap-1 mt-1.5 flex-wrap">
+                {[
+                  { label: 'All',  val: ['TL','TR','BL','BR'] as Corner[] },
+                  { label: 'Top',  val: ['TL','TR'] as Corner[] },
+                  { label: 'Bot',  val: ['BL','BR'] as Corner[] },
+                  { label: '↘↖',  val: ['TL','BR'] as Corner[] },
+                  { label: '↗↙',  val: ['TR','BL'] as Corner[] },
+                  { label: 'None', val: [] as Corner[] },
+                ].map(p => (
+                  <button key={p.label} onClick={() => setWaveCorners(p.val)}
+                    className="px-2 py-0.5 rounded text-[9px] font-medium border border-white/15 text-gray-500 hover:border-white/30 hover:text-gray-300 transition-colors">
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Speed */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] text-gray-500 uppercase tracking-wider">Speed</p>
+                <span className="text-[10px] text-indigo-400 font-bold">{waveSpeed.toFixed(1)}×</span>
+              </div>
+              <input type="range" min="0.2" max="3.0" step="0.1" value={waveSpeed}
+                onChange={e => setWaveSpeed(Number(e.target.value))}
+                className="w-full h-1.5 rounded-full accent-indigo-500" />
+              <div className="flex justify-between text-[8px] text-gray-600 mt-0.5">
+                <span>Slow</span><span>Fast</span>
+              </div>
+            </div>
+
+            {/* Color override */}
+            <div>
+              <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">Wave Color</p>
+              <div className="flex items-center gap-2">
+                <input type="color" value={waveColorOverride || theme.accentColor}
+                  onChange={e => setWaveColorOverride(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent" />
+                <div className="flex gap-1 flex-wrap">
+                  {['', '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#f87171', '#ffffff'].map(c => (
+                    <button key={c || 'auto'} onClick={() => setWaveColorOverride(c)}
+                      className="w-5 h-5 rounded-full border-2 transition-all"
+                      style={{
+                        background: c || theme.accentColor,
+                        borderColor: (waveColorOverride === c) ? 'white' : 'transparent',
+                      }}
+                      title={c ? c : 'Auto (match card theme)'} />
+                  ))}
+                </div>
+              </div>
+              <p className="text-[9px] text-gray-600 mt-1">Auto follows card theme</p>
             </div>
           </div>
 
