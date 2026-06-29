@@ -316,10 +316,67 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onCl
             <Scene template={template} texture={texture} aspect={aspect} />
             <CaptureButton glRef={glRef} itemTitle={item.title} format={format} />
           </Canvas>
+
+          {/* Recording indicator */}
           {recording && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-red-600/90 text-white rounded-full text-sm animate-pulse">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-red-600/90 text-white rounded-full text-sm animate-pulse z-20">
               <div className="w-2.5 h-2.5 bg-white rounded-full" />Recording video…
             </div>
+          )}
+
+          {/* In-canvas prev / next navigation */}
+          {total > 1 && (
+            <>
+              {/* Prev */}
+              <button
+                onClick={() => setIdx(i => Math.max(0, i - 1))}
+                disabled={idx === 0}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full flex items-center justify-center
+                           bg-white/10 hover:bg-white/25 border border-white/20 hover:border-white/50
+                           text-white disabled:opacity-15 disabled:cursor-not-allowed
+                           backdrop-blur-sm transition-all shadow-lg"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              {/* Next */}
+              <button
+                onClick={() => setIdx(i => Math.min(total - 1, i + 1))}
+                disabled={idx === total - 1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full flex items-center justify-center
+                           bg-white/10 hover:bg-white/25 border border-white/20 hover:border-white/50
+                           text-white disabled:opacity-15 disabled:cursor-not-allowed
+                           backdrop-blur-sm transition-all shadow-lg"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              {/* Counter badge at bottom */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 backdrop-blur-sm border border-white/15">
+                <span className="text-white/90 text-xs font-bold">{idx + 1}</span>
+                <span className="text-white/35 text-xs">/ {total}</span>
+                {/* Dot indicators (max 10 shown) */}
+                <div className="flex gap-1 ml-1">
+                  {allItems.slice(0, Math.min(total, 12)).map((_, i) => (
+                    <button key={i} onClick={() => setIdx(i)}
+                      className="rounded-full transition-all"
+                      style={{
+                        width:  i === idx ? 16 : 6,
+                        height: 6,
+                        background: i === idx ? '#818cf8' : 'rgba(255,255,255,0.3)',
+                      }} />
+                  ))}
+                  {total > 12 && <span className="text-white/30 text-[9px] ml-0.5">+{total - 12}</span>}
+                </div>
+              </div>
+
+              {/* Card title overlay (top-center) */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 max-w-[60%]">
+                <p className="text-center text-white/70 text-xs font-medium truncate px-3 py-1 rounded-full bg-black/30 backdrop-blur-sm">
+                  {item.title}
+                </p>
+              </div>
+            </>
           )}
         </div>
 
