@@ -607,17 +607,17 @@ export function ProposalsPanel({ currentUser, isAdmin }: Props) {
       <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-4 mb-5">
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-xl mb-1">💡</div>
+            <div className="flex justify-center mb-1 text-indigo-500"><Lightbulb className="w-5 h-5" /></div>
             <p className="text-[11px] font-semibold text-gray-700">Propose</p>
             <p className="text-[10px] text-gray-400">Submit a change idea</p>
           </div>
           <div>
-            <div className="text-xl mb-1">🗳️</div>
+            <div className="flex justify-center mb-1 text-indigo-500"><ThumbsUp className="w-5 h-5" /></div>
             <p className="text-[11px] font-semibold text-gray-700">Vote</p>
             <p className="text-[10px] text-gray-400">Support or oppose with reason</p>
           </div>
           <div>
-            <div className="text-xl mb-1">🚀</div>
+            <div className="flex justify-center mb-1 text-indigo-500"><TrendingUp className="w-5 h-5" /></div>
             <p className="text-[11px] font-semibold text-gray-700">Track</p>
             <p className="text-[10px] text-gray-400">See it move to implemented</p>
           </div>

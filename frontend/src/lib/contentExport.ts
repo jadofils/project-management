@@ -51,6 +51,15 @@ function getFontName(fontId: string): string {
   return FONT_OPTIONS.find(f => f.id === fontId)?.canvas ?? 'Arial';
 }
 
+function hexLuminance(hex: string): number {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return 0.5;
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
 function applyBg(ctx: CanvasRenderingContext2D, theme: CardTheme, w: number, h: number) {
   if (theme.isGradient) {
     const g = ctx.createLinearGradient(0, 0, w, h);
@@ -278,14 +287,17 @@ export function drawDialogCardToCanvas(
     const bx   = isT ? pad : W - pad - bw;
     // Name label
     ctx.font = `bold ${ns}px ${font}`;
-    ctx.fillStyle = isT ? theme.accentColor : theme.fadedColor;
+    ctx.fillStyle = isT ? theme.accentColor : theme.textColor;
+    ctx.globalAlpha = isT ? 1 : 0.65;
     ctx.textAlign = isT ? 'left' : 'right';
     ctx.fillText(name, isT ? pad : W - pad, y);
+    ctx.globalAlpha = 1;
     y += Math.round(ns * 1.4);
-    // Bubble
-    const bgColor = isT ? theme.accentColor : '#ffffff';
-    const bgAlpha = isT ? 0.85 : 0.18;
-    const textCol = isT ? theme.from : theme.textColor;
+    // Bubble — ensure high contrast regardless of theme
+    const accentIsLight = hexLuminance(theme.accentColor) > 0.42;
+    const bgColor = isT ? theme.accentColor : '#d8e8f4';
+    const bgAlpha = 0.94;
+    const textCol = isT ? (accentIsLight ? '#0d0d14' : '#f5f5f8') : '#0d0d14';
     ctx.textAlign = 'left';
     y = drawBubble(ctx, line.text, bx, y, bw, bgColor, bgAlpha, textCol, bs, font, bp, br) + gap;
     if (y > H * 0.83) break;

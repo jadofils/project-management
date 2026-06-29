@@ -24,6 +24,12 @@ export class ContentController {
   @Post('drafts/bulk')  bulkCreate(@Req() req: any, @Body('items') items: any[]) { return this.svc.bulkCreate(req.user.sub, items); }
   @Patch('drafts/:id')  updateDraft(@Param('id') id: string, @Body() dto: any) { return this.svc.updateDraft(id, dto); }
   @Delete('drafts/:id') deleteDraft(@Param('id') id: string) { return this.svc.deleteDraft(id); }
+  @Patch('drafts/:id/use')
+  markUsed(
+    @Param('id') id: string,
+    @Body('platform') platform?: string,
+    @Body('note') note?: string,
+  ) { return this.svc.markUsed(id, platform, note); }
   @Post('drafts/:id/publish')
   publishDraft(
     @Param('id') id: string,
@@ -61,4 +67,12 @@ export class ContentController {
   analyzePattern(@Body('post') postText: string) { return this.ai.analyzePattern(postText); }
 
   @Get('ai/analyze') analyzeContent() { return this.ai.analyzeContent(); }
+
+  @Post('ai/improve')
+  improveContent(
+    @Body('title') title: string,
+    @Body('body')  body: string,
+    @Body('platform') platform?: string,
+    @Body('engagement_score') engagementScore?: number,
+  ) { return this.ai.improveContent(title, body, platform, engagementScore); }
 }

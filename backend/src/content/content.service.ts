@@ -56,6 +56,19 @@ export class ContentService {
     return this.drafts.findOne({ where: { id } });
   }
 
+  async markUsed(id: string, platform?: string, note?: string) {
+    const draft = await this.drafts.findOne({ where: { id } });
+    if (!draft) return null;
+    const entry = { platform, note, used_at: new Date().toISOString() };
+    const log = Array.isArray(draft.usage_log) ? [...draft.usage_log, entry] : [entry];
+    await this.drafts.update(id, {
+      use_count: (draft.use_count || 0) + 1,
+      last_used_at: new Date(),
+      usage_log: log,
+    } as any);
+    return this.drafts.findOne({ where: { id } });
+  }
+
   // Password gate
   async verifyPassword(password: string) {
     const record = await this.passwords.find({ order: { created_at: 'DESC' }, take: 1 });

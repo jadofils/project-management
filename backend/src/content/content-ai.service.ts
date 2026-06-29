@@ -136,16 +136,28 @@ Return ONLY a valid JSON array:
 Category: ${cat.description || ''}
 Generate ${count} unique posts with maximum engagement.${noDupe}
 
-IMPORTANT: Use real Unicode emoji (e.g. 😭 🔥 ✍️ 💀) — NOT text like :) or [emoji]. Emoji should feel natural like WhatsApp messages.
-Write in sections with clear ALL CAPS headers followed by ':' when the content has multiple parts (e.g. "TEXTING YOUR CRUSH:" then "TEXTING YOUR BESTIE:").
+STYLE RULES — NO emoji at all. Instead use these INFOGRAPHIC-STYLE text markers to add visual punch and personality:
+• Label tags: [HOT] [FACT] [MYTH] [TIP] [WARNING] [VIRAL] [REAL TALK] [STUDY SAYS] [PLOT TWIST]
+• Symbols: ▸ → ★ ✓ ✗ ◆ !! ?? ... • | —
+• Text reactions (inline): lol  XD  ngl  fr fr  smh  omg  bruh  wait what  no way
+• Emphasis: ALL CAPS for shocking facts, *asterisks* around KEY words
+• Dividers: ─── or === between sections
+Write in sections with ALL CAPS headers followed by ':' when content has multiple parts.
 
+Also add "template3d": pick the most fitting 3D visual template for this post's mood:
+  classic (float/prismatic/parallax/hologram/vortex) — professional/formal/tech
+  space (solar/galaxy/nebula/nightsky/moon) — inspiration/cosmic/mystery
+  sky (sun/clouds/sunset/snow/thunder) — emotion/weather/energy
+  nature (ocean/volcano/earth/forest/rain) — growth/nature/environment
+  creative (matrix/fireworks/neon/plasma/glitch) — entertainment/digital/celebration
 Return ONLY a valid JSON array:
 [{
   "title": "Scroll-stopping title (max 80 chars)",
-  "body": "Full engaging post — storytelling, humor, shocking facts, relatable situations. Use real emoji naturally. 100-250 words. Use section headers when applicable.",
+  "body": "Full engaging post — storytelling, humor, shocking facts, relatable situations. 100-250 words. Use section headers when applicable.",
   "hashtags": ["#tag1","#tag2","#tag3","#tag4","#tag5"],
   "bestPlatform": "Instagram/TikTok/Twitter/Facebook/LinkedIn",
-  "engagementScore": 8
+  "engagementScore": 8,
+  "template3d": "galaxy"
 }]${scoreNote}`;
     }
 
@@ -227,6 +239,53 @@ Return ONLY a JSON object:
       const s = raw.replace(/```json|```/g, '').trim();
       return JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
     } catch { return { hookType: 'unknown', whyItWorks: 'Analysis failed', template: '', score: 0 }; }
+  }
+
+  // ── Improvement recommendations ───────────────────────────────────────────
+  async improveContent(title: string, body: string, platform?: string, engagementScore?: number) {
+    const platformNote = platform ? `Currently targeting: ${platform}.` : '';
+    const scoreNote = engagementScore ? `Current AI engagement score: ${engagementScore}/10.` : '';
+    const prompt = `You are a viral content strategist. Analyze this social media post and give SPECIFIC improvement recommendations.
+
+TITLE: ${title}
+BODY:
+${body}
+${platformNote} ${scoreNote}
+
+Give EXACTLY 5 actionable recommendations in these categories:
+1. HOOK — how to make the opening more scroll-stopping (rewrite the first sentence)
+2. STRUCTURE — improve readability, pacing, use of markers [HOT] [FACT] etc
+3. HASHTAGS — 5 better hashtags that will reach more people + why
+4. CTA — a stronger call-to-action that drives engagement
+5. PLATFORM — which platform this suits best and one platform-specific tweak
+
+Also analyze the content and return:
+- platforms: score this content's fit for each of: Instagram, TikTok, Twitter, LinkedIn, Facebook, YouTube, Pinterest (1-10 score each, only include score >= 5)
+- convertTo: recommend 3-4 content format conversions that would make this content MORE powerful. Choose from: carousel (multi-slide post), infographic (data/tips visual), video_script (short video with scenes), image_quote (single pull-quote card), thread (numbered multi-post series), podcast_script (audio narration), story_slides (vertical story slides), meme (visual joke format). For each give an "action" mapping: carousel→"slides", infographic→"image", video_script→"slides", image_quote→"image", thread→"copy", podcast_script→"audio", story_slides→"slides", meme→"image"
+
+Return ONLY a JSON object:
+{
+  "hook": { "issue": "one sentence problem", "rewrite": "new first sentence or hook" },
+  "structure": { "issue": "one sentence problem", "fix": "specific suggestion" },
+  "hashtags": { "suggested": ["#tag1","#tag2","#tag3","#tag4","#tag5"], "reason": "one sentence why" },
+  "cta": { "current": "current ending or CTA", "better": "improved CTA text" },
+  "platform": { "best": "Instagram/TikTok/LinkedIn/Twitter/Facebook", "tip": "one platform-specific tip" },
+  "platforms": [
+    { "name": "Instagram", "score": 9, "reason": "one sentence why", "tip": "one platform-specific action" },
+    { "name": "TikTok", "score": 7, "reason": "one sentence why", "tip": "one platform-specific action" }
+  ],
+  "convertTo": [
+    { "format": "carousel", "label": "Carousel Slides", "reason": "why this format would perform better", "action": "slides" },
+    { "format": "infographic", "label": "Infographic", "reason": "why this format would perform better", "action": "image" }
+  ],
+  "scoreImprovement": "estimated new score 1-10 if these are applied"
+}`;
+
+    const raw = await this.callAI([{ role: 'user', content: prompt }], 0.5);
+    try {
+      const s = raw.replace(/```json|```/g, '').trim();
+      return JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
+    } catch { return { error: 'Could not parse recommendations' }; }
   }
 
   // ── Content library analyzer ──────────────────────────────────────────────

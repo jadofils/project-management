@@ -465,6 +465,9 @@ export class ContentDraft {
   @Column({ type: 'varchar', length: 50, nullable: true }) persona!: string | null;
   @Column({ type: 'timestamp', nullable: true }) scheduled_at!: Date | null;
   @Column({ type: 'uuid', nullable: true }) project_id!: string | null;
+  @Column({ type: 'int', default: 0 }) use_count!: number;
+  @Column({ type: 'timestamp', nullable: true }) last_used_at!: Date | null;
+  @Column({ type: 'simple-json', nullable: true }) usage_log!: { platform?: string; note?: string; used_at: string }[] | null;
   @CreateDateColumn() created_at!: Date;
 }
 

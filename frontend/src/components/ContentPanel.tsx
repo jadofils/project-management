@@ -137,9 +137,7 @@ function ClaudeMascot({ message, size = 'md', thinking = false }: { message?: st
 function BigCard({ item, theme, fontCss, contentType }: {
   item: any; theme: CardTheme; fontCss: string; contentType: ContentType;
 }) {
-  const dialogue: { speaker: string; text: string }[] | null = contentType === 'dialog'
-    ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
-    : null;
+  const dialogue = item.dialogue ?? detectDialogue(item.body || '', contentType);
   const scoreColor = item.engagementScore >= 8 ? '#22c55e' : item.engagementScore >= 6 ? '#f59e0b' : '#ef4444';
 
   return (
@@ -162,7 +160,7 @@ function BigCard({ item, theme, fontCss, contentType }: {
         {item.engagementScore && (
           <span className="text-xs font-bold px-2.5 py-1 rounded-full shadow-sm"
                 style={{ background: scoreColor, color: '#fff' }}>
-            ⚡ {item.engagementScore}/10 viral score
+            {item.engagementScore}/10 viral
           </span>
         )}
       </div>
@@ -175,24 +173,7 @@ function BigCard({ item, theme, fontCss, contentType }: {
       {/* Body */}
       <div className="relative z-10 px-5 pb-4 flex-1">
         {dialogue && dialogue.length > 0 ? (
-          <div className="space-y-2.5">
-            {dialogue.map((line, i) => (
-              <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
-                <div className="max-w-[85%]">
-                  <span className="text-[9px] font-bold uppercase opacity-60 px-1">
-                    {line.speaker === 'T' ? 'Tinyuwise' : 'Fatikaram'}
-                  </span>
-                  <div className="text-sm leading-relaxed px-3 py-2 rounded-2xl mt-0.5"
-                       style={{
-                         background: line.speaker === 'T' ? theme.accentColor + '40' : 'rgba(255,255,255,0.18)',
-                         color: theme.textColor,
-                       }}>
-                    {line.text}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <DialogBubbles lines={dialogue} />
         ) : (
           <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ opacity: 0.88 }}>{item.body}</p>
         )}
@@ -218,9 +199,7 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
   item: any; theme: CardTheme; fontCss: string; isSelected: boolean;
   onToggle: () => void; onPreview: () => void; contentType: ContentType;
 }) {
-  const dialogue: { speaker: string; text: string }[] | null = contentType === 'dialog'
-    ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
-    : null;
+  const dialogue = item.dialogue ?? detectDialogue(item.body || '', contentType);
 
   const scoreColor = item.engagementScore >= 8 ? '#22c55e' : item.engagementScore >= 6 ? '#f59e0b' : '#ef4444';
 
@@ -291,18 +270,8 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
         <h3 className="font-bold text-sm leading-snug line-clamp-3 flex-shrink-0">{item.title}</h3>
 
         {dialogue && dialogue.length > 0 ? (
-          <div className="flex-1 space-y-1.5 overflow-hidden">
-            {dialogue.slice(0, 5).map((line, i) => (
-              <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
-                <span className="text-[9px] leading-relaxed px-2 py-1 rounded-xl max-w-[88%] break-words"
-                  style={{
-                    background: line.speaker === 'T' ? theme.accentColor + '38' : 'rgba(255,255,255,0.15)',
-                    color: theme.textColor,
-                  }}>
-                  {line.text.slice(0, 55)}{line.text.length > 55 ? '…' : ''}
-                </span>
-              </div>
-            ))}
+          <div className="flex-1 overflow-hidden">
+            <DialogBubbles lines={dialogue.slice(0, 5)} compact />
           </div>
         ) : (
           <p className="text-xs leading-relaxed line-clamp-6 flex-1"
@@ -346,7 +315,7 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose, onOpen3D, onSecti
   const [loadingVariants, setLdVar]     = useState(false);
 
   const dialogue: { speaker: string; text: string }[] | null =
-    item.dialogue ?? (item.content_type === 'dialog' ? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })() : null);
+    item.dialogue ?? detectDialogue(item.body || '', item.content_type);
 
   const download = async () => {
     setDl(true);
@@ -360,7 +329,7 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose, onOpen3D, onSecti
   const speak = () => {
     if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
     const text = dialogue
-      ? dialogue.map(l => `${l.speaker === 'T' ? 'Tinyuwize: ' : 'Fatikara: '}${l.text}`).join('. ')
+      ? dialogue.map(l => `${l.speaker}: ${l.text}`).join('. ')
       : `${item.title}. ${item.body}`;
     const utt = new SpeechSynthesisUtterance(text);
     utt.rate = 0.92; utt.pitch = 1;
@@ -429,23 +398,8 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose, onOpen3D, onSecti
             )}
             <h3 className="font-bold text-base leading-snug">{item.title}</h3>
             {dialogue && dialogue.length > 0 ? (
-              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-                {dialogue.map((line, i) => (
-                  <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
-                    <div className="max-w-[88%]">
-                      <p className="text-[8px] font-bold mb-0.5 opacity-70" style={{ textAlign: line.speaker === 'T' ? 'left' : 'right' }}>
-                        {line.speaker === 'T' ? 'Tinyuwize' : 'Fatikara'}
-                      </p>
-                      <span className="text-[9px] leading-relaxed px-2 py-1 rounded-xl inline-block"
-                        style={{
-                          background: line.speaker === 'T' ? pTheme.accentColor + '38' : 'rgba(255,255,255,0.2)',
-                          color: pTheme.textColor,
-                        }}>
-                        {line.text}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex-1 overflow-y-auto pr-1">
+                <DialogBubbles lines={dialogue} />
               </div>
             ) : (
               <p className="text-[11px] leading-relaxed flex-1 overflow-y-auto"
@@ -722,10 +676,7 @@ function CarouselModal({ items, initialIdx, theme, fontCss, fontId, contentType,
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const item = items[idx];
-  const dialogue: { speaker: string; text: string }[] | null =
-    contentType === 'dialog'
-      ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
-      : null;
+  const dialogue = item.dialogue ?? detectDialogue(item.body || '', contentType);
 
   const prev = () => setIdx(i => (i - 1 + items.length) % items.length);
   const next = () => setIdx(i => (i + 1) % items.length);
@@ -783,20 +734,8 @@ function CarouselModal({ items, initialIdx, theme, fontCss, fontId, contentType,
               )}
               <h3 className="font-bold text-lg leading-snug">{item.title}</h3>
               {dialogue && dialogue.length > 0 ? (
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {dialogue.map((line, i) => (
-                    <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
-                      <div className="max-w-[86%]">
-                        <p className="text-[9px] font-bold mb-0.5 opacity-60" style={{ textAlign: line.speaker === 'T' ? 'left' : 'right' }}>
-                          {line.speaker === 'T' ? 'Tinyuwize' : 'Fatikara'}
-                        </p>
-                        <span className="text-xs leading-relaxed px-2.5 py-1.5 rounded-2xl inline-block"
-                          style={{ background: line.speaker === 'T' ? theme.accentColor + '35' : 'rgba(255,255,255,0.18)', color: theme.textColor }}>
-                          {line.text}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 overflow-y-auto pr-1">
+                  <DialogBubbles lines={dialogue} />
                 </div>
               ) : (
                 <p className="text-sm leading-relaxed flex-1 overflow-y-auto" style={{ opacity: 0.85, whiteSpace: 'pre-wrap' }}>
@@ -1050,14 +989,310 @@ function PublishModal({ draft, projects, onPublished, onClose }: {
   );
 }
 
+// ── Dialog detection & bubble rendering ───────────────────────────────────────
+function detectDialogue(body: string, contentType?: string): Array<{ speaker: string; text: string }> | null {
+  // 1. dialog content_type → parse JSON body
+  if (contentType === 'dialog') {
+    try {
+      const p = JSON.parse(body || '[]');
+      if (Array.isArray(p) && p[0]?.speaker) return p;
+    } catch { /* fall through */ }
+  }
+  // 2. JSON array with speaker+text (saved dialog body)
+  try {
+    const p = JSON.parse(body || '');
+    if (Array.isArray(p) && p.length >= 2 && p[0]?.speaker && p[0]?.text) return p;
+  } catch { /* fall through */ }
+  // 3. "Speaker: text" plain-text dialogue
+  const lines = (body || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const RE = /^([A-Za-z][\w\s]{0,25}?):\s+(.+)$/;
+  const matched = lines.map(l => { const m = l.match(RE); return m ? { speaker: m[1].trim(), text: m[2].trim() } : null; });
+  const valid = matched.filter(Boolean) as Array<{ speaker: string; text: string }>;
+  const unique = new Set(valid.map(l => l.speaker)).size;
+  if (valid.length >= 3 && unique >= 2 && valid.length >= lines.length * 0.5) return valid;
+  return null;
+}
+
+const SPEAKER_PALETTES = [
+  { bubble: '#3b82f6', bubbleDark: '#1d4ed8', label: '#60a5fa', side: 'left'  as const },
+  { bubble: '#8b5cf6', bubbleDark: '#6d28d9', label: '#a78bfa', side: 'right' as const },
+  { bubble: '#10b981', bubbleDark: '#065f46', label: '#34d399', side: 'left'  as const },
+  { bubble: '#f59e0b', bubbleDark: '#92400e', label: '#fbbf24', side: 'right' as const },
+  { bubble: '#ec4899', bubbleDark: '#9d174d', label: '#f472b6', side: 'left'  as const },
+  { bubble: '#14b8a6', bubbleDark: '#0f766e', label: '#2dd4bf', side: 'right' as const },
+];
+
+function DialogBubbles({ lines, compact = false }: { lines: Array<{ speaker: string; text: string }>; compact?: boolean }) {
+  const speakerOrder: string[] = [];
+  lines.forEach(l => { if (!speakerOrder.includes(l.speaker)) speakerOrder.push(l.speaker); });
+  const palette = (speaker: string) => SPEAKER_PALETTES[speakerOrder.indexOf(speaker) % SPEAKER_PALETTES.length];
+
+  const visible = compact ? lines.slice(0, 4) : lines;
+
+  return (
+    <div className={`space-y-${compact ? '1.5' : '2.5'} w-full`}>
+      {visible.map((line, i) => {
+        const pal = palette(line.speaker);
+        const isLeft = pal.side === 'left';
+        const initials = line.speaker.slice(0, 2).toUpperCase();
+        return (
+          <div key={i} className={`flex items-end gap-1.5 ${isLeft ? 'justify-start' : 'justify-end'}`}>
+            {isLeft && (
+              <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm"
+                style={{ background: pal.bubble }}>
+                {initials}
+              </div>
+            )}
+            <div className={`max-w-[80%] ${isLeft ? '' : ''}`}>
+              <p className={`text-[9px] font-bold mb-0.5 opacity-80 ${isLeft ? 'text-left' : 'text-right'}`}
+                style={{ color: pal.label }}>
+                {line.speaker}
+              </p>
+              <div className={`px-2.5 py-1.5 rounded-2xl ${isLeft ? 'rounded-bl-sm' : 'rounded-br-sm'} shadow-sm`}
+                style={{ background: pal.bubble + (compact ? '28' : '30') }}>
+                <p className={`${compact ? 'text-[9px]' : 'text-[11px]'} leading-relaxed text-gray-800 dark:text-gray-100`}>
+                  {line.text}
+                </p>
+              </div>
+            </div>
+            {!isLeft && (
+              <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm"
+                style={{ background: pal.bubble }}>
+                {initials}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {compact && lines.length > 4 && (
+        <p className="text-[9px] text-gray-400 dark:text-gray-500 pl-7">+{lines.length - 4} more lines...</p>
+      )}
+    </div>
+  );
+}
+
+// ── AI Improve Modal ──────────────────────────────────────────────────────────
+function ImproveModal({ draft, onClose, onConvert }: {
+  draft: any; onClose: () => void;
+  onConvert: (action: 'slides' | 'carousel' | '3d' | 'image' | 'audio' | 'copy') => void;
+}) {
+  const [result, setResult]     = useState<any>(null);
+  const [loading, setLoading]   = useState(false);
+  const [applied, setApplied]   = useState<Record<string, boolean>>({});
+
+  const run = async () => {
+    setLoading(true); setResult(null);
+    try {
+      const r = await api.aiImproveContent(draft.title, draft.body, draft.best_platform, draft.engagement_score);
+      setResult(r);
+    } catch { toast.error('Failed to get recommendations'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { run(); }, []);
+
+  const copyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setApplied(p => ({ ...p, [key]: true }));
+    toast.success('Copied to clipboard');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b dark:border-gray-700 shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            <h2 className="font-bold text-gray-800 dark:text-gray-100">AI Content Recommendations</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-0.5">Analyzing</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-2">{draft.title}</p>
+          </div>
+
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+              <p className="text-sm text-gray-400">AI is analyzing your content...</p>
+            </div>
+          )}
+
+          {result && !result.error && (
+            <div className="space-y-3">
+              {result.scoreImprovement && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 flex items-center gap-3">
+                  <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                  <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+                    Applying these recommendations could raise your score to <strong>{result.scoreImprovement}/10</strong>
+                    {draft.engagement_score && <> (currently {draft.engagement_score}/10)</>}
+                  </p>
+                </div>
+              )}
+
+              {[
+                { key: 'hook',      label: 'Hook — Make the opening scroll-stopping',  color: 'red',    copyKey: 'rewrite' },
+                { key: 'structure', label: 'Structure — Improve readability & pacing',  color: 'blue',   copyKey: 'fix' },
+                { key: 'cta',       label: 'CTA — Stronger call-to-action',             color: 'green',  copyKey: 'better' },
+                { key: 'platform',  label: 'Platform — Best platform strategy',         color: 'purple', copyKey: 'tip' },
+              ].map(({ key, label, color, copyKey }) => {
+                const item = result[key];
+                if (!item) return null;
+                const copyValue = item[copyKey];
+                const colors: Record<string, string> = {
+                  red: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+                  blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+                  green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+                  purple: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
+                };
+                const textColors: Record<string, string> = {
+                  red: 'text-red-700 dark:text-red-400', blue: 'text-blue-700 dark:text-blue-400',
+                  green: 'text-green-700 dark:text-green-400', purple: 'text-purple-700 dark:text-purple-400',
+                };
+                return (
+                  <div key={key} className={`rounded-xl border p-4 ${colors[color]}`}>
+                    <p className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${textColors[color]}`}>{label}</p>
+                    {item.issue && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 italic">Issue: {item.issue}</p>}
+                    {item.current && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 italic line-through">{item.current}</p>}
+                    {copyValue && (
+                      <div className="flex items-start gap-2">
+                        <p className="text-sm text-gray-800 dark:text-gray-100 font-medium flex-1">{copyValue}</p>
+                        <button onClick={() => copyText(copyValue, key)}
+                          className={`shrink-0 p-1.5 rounded-lg ${applied[key] ? 'text-green-500' : 'text-gray-400 hover:text-gray-600'} transition-colors`}>
+                          {applied[key] ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    )}
+                    {key === 'platform' && item.best && (
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">Best platform: {item.best}</p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {result.hashtags && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-400 mb-2">Hashtags — Better reach</p>
+                  {result.hashtags.reason && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 italic">{result.hashtags.reason}</p>}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {result.hashtags.suggested?.map((t: string) => (
+                      <span key={t} className="text-xs font-medium text-indigo-600 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">{t}</span>
+                    ))}
+                  </div>
+                  <button onClick={() => copyText((result.hashtags.suggested || []).join(' '), 'hashtags')}
+                    className={`flex items-center gap-1 text-xs font-medium ${applied['hashtags'] ? 'text-green-500' : 'text-indigo-500 hover:text-indigo-700'} transition-colors`}>
+                    {applied['hashtags'] ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {applied['hashtags'] ? 'Copied' : 'Copy all hashtags'}
+                  </button>
+                </div>
+              )}
+
+              {/* Platform fit */}
+              {result.platforms?.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Platform Fit Score</p>
+                  <div className="space-y-2">
+                    {[...result.platforms].sort((a: any, b: any) => b.score - a.score).map((p: any) => {
+                      const pColors: Record<string, string> = {
+                        Instagram: '#e1306c', TikTok: '#010101', Twitter: '#1da1f2',
+                        LinkedIn: '#0077b5', Facebook: '#1877f2', YouTube: '#ff0000', Pinterest: '#bd081c',
+                      };
+                      const col = pColors[p.name] || '#6366f1';
+                      const pct = Math.round(p.score * 10);
+                      return (
+                        <div key={p.name}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold" style={{ color: col }}>{p.name}</span>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{p.score}/10</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: col }} />
+                          </div>
+                          {p.reason && <p className="text-[10px] text-gray-500 dark:text-gray-400">{p.reason}</p>}
+                          {p.tip && <p className="text-[10px] text-gray-400 dark:text-gray-500 italic mt-0.5">[TIP] {p.tip}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Convert to */}
+              {result.convertTo?.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Convert This Content To</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {result.convertTo.map((c: any) => {
+                      const fmtIcons: Record<string, React.ReactNode> = {
+                        slides: <Film className="w-4 h-4" />,
+                        image: <ImageIcon className="w-4 h-4" />,
+                        audio: <Mic className="w-4 h-4" />,
+                        copy: <Copy className="w-4 h-4" />,
+                        carousel: <ChevronRight className="w-4 h-4" />,
+                        '3d': <Sparkles className="w-4 h-4" />,
+                      };
+                      const fmtColors: Record<string, string> = {
+                        slides: 'from-teal-500 to-emerald-500',
+                        image: 'from-indigo-500 to-purple-500',
+                        audio: 'from-pink-500 to-rose-500',
+                        copy: 'from-blue-500 to-cyan-500',
+                        carousel: 'from-orange-500 to-amber-500',
+                        '3d': 'from-violet-500 to-indigo-500',
+                      };
+                      const action = c.action as 'slides' | 'carousel' | '3d' | 'image' | 'audio' | 'copy';
+                      const grad = fmtColors[action] || 'from-gray-500 to-gray-600';
+                      return (
+                        <button key={c.format} onClick={() => { onConvert(action); onClose(); }}
+                          className={`flex flex-col items-start gap-1.5 p-3 bg-gradient-to-br ${grad} text-white rounded-xl text-left hover:opacity-90 transition-opacity`}>
+                          <div className="flex items-center gap-1.5 font-semibold text-xs">
+                            {fmtIcons[action] || <Sparkles className="w-4 h-4" />}
+                            {c.label}
+                          </div>
+                          <p className="text-[9px] opacity-80 leading-relaxed">{c.reason}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {result?.error && (
+            <div className="text-center py-8">
+              <p className="text-sm text-red-500">{result.error}</p>
+              <button onClick={run} className="mt-3 px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-medium">Try again</button>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-t dark:border-gray-700 shrink-0 flex justify-between items-center">
+          <button onClick={run} disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl disabled:opacity-50 transition-colors">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />Re-analyze
+          </button>
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Draft list row ────────────────────────────────────────────────────────────
-function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview, onSlides }: {
+function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview, onSlides, onView3D, onMarkUsed, onImprove }: {
   d: any; categories: any[];
-  onEdit: () => void; onDelete: () => void; onPublish: () => void; onPreview: () => void; onSlides: () => void;
+  onEdit: () => void; onDelete: () => void; onPublish: () => void; onPreview: () => void;
+  onSlides: () => void; onView3D: () => void; onMarkUsed: () => void; onImprove: () => void;
 }) {
   const cat = categories.find(c => c.id === d.category_id);
   const Ic  = getIcon(cat?.icon);
   const isPub = d.status === 'published';
+  const useCount = d.use_count || 0;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-indigo-50 dark:bg-indigo-900/30">
@@ -1069,8 +1304,18 @@ function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview, onSli
           <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isPub ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
             {d.status || 'draft'}
           </span>
+          {useCount > 0 && (
+            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" title="Times used/posted">
+              Used {useCount}x
+            </span>
+          )}
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{d.body}</p>
+        {(() => {
+          const dlg = detectDialogue(d.body, d.content_type);
+          return dlg
+            ? <div className="mt-1.5"><DialogBubbles lines={dlg} compact /></div>
+            : <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{d.body}</p>;
+        })()}
         {d.hashtags?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {(Array.isArray(d.hashtags) ? d.hashtags as string[] : []).slice(0, 4).map((t: string) => (
@@ -1081,12 +1326,16 @@ function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview, onSli
         <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-1">
           {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           {d.best_platform && <> · {d.best_platform}</>}
+          {d.last_used_at && <> · Last used {new Date(d.last_used_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>}
         </p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={onPreview} title="Preview" className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"><Eye className="w-3.5 h-3.5" /></button>
-        <button onClick={onSlides}  title="Section slides" className="p-1.5 text-gray-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg transition-colors"><ChevronRight className="w-3.5 h-3.5" /></button>
-        <button onClick={onEdit}    title="Edit"    className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
+        <button onClick={onPreview}   title="Preview"        className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+        <button onClick={onSlides}    title="Section slides" className="p-1.5 text-gray-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg transition-colors"><ChevronRight className="w-3.5 h-3.5" /></button>
+        <button onClick={onView3D}    title="View in 3D"     className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors text-[10px] font-bold leading-none">3D</button>
+        <button onClick={onImprove}   title="AI Improve"     className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors"><Sparkles className="w-3.5 h-3.5" /></button>
+        <button onClick={onMarkUsed}  title="Mark as Used"   className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><Check className="w-3.5 h-3.5" /></button>
+        <button onClick={onEdit}      title="Edit"           className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
         <button onClick={() => { navigator.clipboard.writeText(`${d.title}\n\n${d.body}`); toast.success('Copied'); }}
           title="Copy" className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><Copy className="w-3.5 h-3.5" /></button>
         {!isPub && (
@@ -1297,7 +1546,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
   const [loading, setLoading]       = useState(true);
 
   // Visual config
-  const [activeTheme, setActiveTheme] = useState<CardTheme>(CARD_THEMES[0]);
+  const [activeTheme, setActiveTheme] = useState<CardTheme>(CARD_THEMES[1]);
   const [fontId, setFontId]           = useState('segoe');
   const fontCss = FONT_OPTIONS.find(f => f.id === fontId)?.css ?? "'Segoe UI', sans-serif";
 
@@ -1337,6 +1586,9 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
   // Analytics
   const [analysis, setAnalysis]   = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Improve
+  const [improveItem, setImproveItem] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -1435,6 +1687,14 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
     if (!confirm('Delete this draft?')) return;
     try { await api.deleteContentDraft(id); toast.success('Deleted'); load(); } catch { toast.error('Failed'); }
   };
+
+  const handleMarkUsed = async (id: string) => {
+    try {
+      const updated = await api.markDraftUsed(id);
+      setDrafts(p => p.map(d => d.id === id ? updated : d));
+      toast.success('Marked as used');
+    } catch { toast.error('Failed to mark as used'); }
+  };
   const handleDeleteCat = async (id: string) => {
     if (!confirm('Delete this category and all its content?')) return;
     try { await api.deleteContentCategory(id); toast.success('Deleted'); load(); } catch (e: any) { toast.error(e.message || 'Failed'); }
@@ -1461,10 +1721,21 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
       {editDraft    && <EditDraftModal draft={editDraft} categories={categories} onSave={u => setDrafts(p => p.map(d => d.id === u.id ? u : d))} onClose={() => setEditDraft(null)} />}
       {publishDraft && <PublishModal draft={publishDraft} projects={projects} onPublished={load} onClose={() => setPublishDraft(null)} />}
       {catModal.open && <CategoryFormModal cat={catModal.cat} onSave={load} onClose={() => setCatModal({ open: false })} />}
+      {improveItem  && <ImproveModal draft={improveItem} onClose={() => setImproveItem(null)}
+        onConvert={action => {
+          const d = improveItem;
+          setImproveItem(null);
+          if (action === 'slides') setSectionItem(d);
+          else if (action === '3d') setStudio3dItem(d);
+          else if (action === 'carousel') { setPreviewDraft(d); }
+          else if (action === 'image') { setPreviewDraft(d); }
+          else if (action === 'audio') { setPreviewDraft(d); }
+          else if (action === 'copy') { navigator.clipboard.writeText(`${d.title}\n\n${d.body}`); toast.success('Copied to clipboard'); }
+        }} />}
       {studio3dItem && (
         studio3dItem.__all
-          ? <ThreeDCardViewer items={generated} initialIdx={cardIdx} onClose={() => setStudio3dItem(null)} />
-          : <ThreeDCardViewer item={studio3dItem} onClose={() => setStudio3dItem(null)} />
+          ? <ThreeDCardViewer items={generated} initialIdx={cardIdx} initialTemplate={generated[cardIdx]?.template3d} onClose={() => setStudio3dItem(null)} />
+          : <ThreeDCardViewer item={studio3dItem} initialTemplate={studio3dItem.template3d} onClose={() => setStudio3dItem(null)} />
       )}
       {sectionItem  && <SectionCarouselModal item={sectionItem} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setSectionItem(null)} />}
 
@@ -1884,7 +2155,10 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                     onDelete={() => handleDelete(d.id)}
                     onPublish={() => setPublishDraft(d)}
                     onPreview={() => setPreviewDraft(d)}
-                    onSlides={() => setSectionItem(d)} />
+                    onSlides={() => setSectionItem(d)}
+                    onView3D={() => setStudio3dItem(d)}
+                    onMarkUsed={() => handleMarkUsed(d.id)}
+                    onImprove={() => setImproveItem(d)} />
                 ))}
               </div>
             )}
@@ -1965,99 +2239,195 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
         )}
 
         {/* ─────────────── ANALYTICS ──────────────────────────────── */}
-        {tab === 'analytics' && (
-          <div className="p-6 max-w-4xl mx-auto space-y-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label:'Total Created', value:drafts.length,       color:'bg-indigo-500', Icon:FileText },
-                { label:'Published',     value:allPublished.length, color:'bg-green-500',  Icon:Send },
-                { label:'In Draft',      value:allDrafts.length,    color:'bg-amber-500',  Icon:Edit3 },
-                { label:'Categories',    value:categories.length,   color:'bg-purple-500', Icon:Tag },
-              ].map(s => (
-                <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 ${s.color} rounded-xl flex items-center justify-center shrink-0`}>
-                      <s.Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{s.value}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
+        {tab === 'analytics' && (() => {
+          const usedDrafts   = drafts.filter(d => (d.use_count || 0) > 0);
+          const totalUses    = drafts.reduce((s, d) => s + (d.use_count || 0), 0);
+          const topUsed      = [...drafts].sort((a, b) => (b.use_count || 0) - (a.use_count || 0)).slice(0, 5);
+          const avgScore     = drafts.filter(d => d.engagement_score).length > 0
+            ? Math.round(drafts.filter(d => d.engagement_score).reduce((s, d) => s + d.engagement_score, 0) / drafts.filter(d => d.engagement_score).length * 10) / 10
+            : null;
+          const platformMap  = drafts.reduce<Record<string, number>>((acc, d) => {
+            const p = d.best_platform?.split('/')[0]?.trim();
+            if (p) acc[p] = (acc[p] || 0) + 1;
+            return acc;
+          }, {});
+          const recentlyUsed = [...drafts]
+            .filter(d => d.last_used_at)
+            .sort((a, b) => new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime())
+            .slice(0, 5);
+
+          return (
+            <div className="p-6 max-w-4xl mx-auto space-y-5">
+              {/* Stats row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label:'Total Created',  value:drafts.length,       color:'bg-indigo-500', Icon:FileText },
+                  { label:'Published',      value:allPublished.length,  color:'bg-green-500',  Icon:Send },
+                  { label:'Times Used',     value:totalUses,            color:'bg-blue-500',   Icon:Check },
+                  { label:'Avg Score',      value:avgScore ? `${avgScore}/10` : '—', color:'bg-amber-500', Icon:Star },
+                ].map(s => (
+                  <div key={s.label} className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 ${s.color} rounded-xl flex items-center justify-center shrink-0`}>
+                        <s.Icon className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{s.value}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-indigo-400" />Content by Category
-              </h3>
-              <div className="space-y-3">
-                {byCat.sort((a,b) => b.count - a.count).map(cat => {
-                  const Ic  = getIcon(cat.icon);
-                  const pct = drafts.length > 0 ? Math.round((cat.count/drafts.length)*100) : 0;
-                  return (
-                    <div key={cat.id} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-                        <Ic className="w-4 h-4 text-indigo-500" />
-                      </div>
-                      <span className="text-sm text-gray-700 dark:text-gray-300 w-28 truncate shrink-0">{cat.name}</span>
-                      <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width:`${pct}%` }} />
-                      </div>
-                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 w-8 text-right shrink-0">{cat.count}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Content by category */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-indigo-400" />Content by Category
+                  </h3>
+                  <div className="space-y-3">
+                    {byCat.sort((a,b) => b.count - a.count).map(cat => {
+                      const Ic  = getIcon(cat.icon);
+                      const pct = drafts.length > 0 ? Math.round((cat.count/drafts.length)*100) : 0;
+                      return (
+                        <div key={cat.id} className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                            <Ic className="w-4 h-4 text-indigo-500" />
+                          </div>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 w-28 truncate shrink-0">{cat.name}</span>
+                          <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width:`${pct}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-gray-600 dark:text-gray-400 w-8 text-right shrink-0">{cat.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Platform distribution */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-blue-400" />Platform Distribution
+                  </h3>
+                  {Object.keys(platformMap).length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-6">No platform data yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.entries(platformMap).sort((a,b) => b[1]-a[1]).map(([platform, count]) => {
+                        const pct = drafts.length > 0 ? Math.round((count/drafts.length)*100) : 0;
+                        const platformColors: Record<string, string> = {
+                          Instagram: 'bg-pink-500', TikTok: 'bg-black', Twitter: 'bg-sky-500',
+                          LinkedIn: 'bg-blue-700', Facebook: 'bg-blue-600', Podcast: 'bg-purple-500',
+                        };
+                        return (
+                          <div key={platform} className="flex items-center gap-3">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 w-24 truncate shrink-0">{platform}</span>
+                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${platformColors[platform] || 'bg-indigo-500'}`} style={{ width:`${pct}%` }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 w-8 text-right shrink-0">{count}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              </div>
+
+              {/* Most used + recently used */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-green-400" />Most Used Content
+                  </h3>
+                  {usedDrafts.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-6">No content marked as used yet. Click the checkmark on any draft to track usage.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {topUsed.filter(d => d.use_count > 0).map((d, i) => (
+                        <div key={d.id} className="flex items-center gap-3">
+                          <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-[10px] font-bold text-green-700 dark:text-green-400 shrink-0">{i+1}</span>
+                          <p className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{d.title}</p>
+                          <span className="shrink-0 text-xs font-bold text-blue-600 dark:text-blue-400">{d.use_count}x</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-purple-400" />Recently Used
+                  </h3>
+                  {recentlyUsed.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-6">No usage history yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentlyUsed.map(d => (
+                        <div key={d.id} className="flex items-start gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{d.title}</p>
+                            <p className="text-[10px] text-gray-400">{new Date(d.last_used_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold text-blue-500">{d.use_count}x</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI insights */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-purple-400" />AI Content Insights
+                  </h3>
+                  <button onClick={runAnalysis} disabled={analyzing || drafts.length < 2}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-purple-700 disabled:opacity-50">
+                    {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    {analyzing ? 'Analyzing...' : 'Run Analysis'}
+                  </button>
+                </div>
+                {!analysis && !analyzing && (
+                  <p className="text-sm text-gray-400 text-center py-8">Click "Run Analysis" for AI-powered insights on your content library</p>
+                )}
+                {analysis && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {analysis.topCategories && (
+                      <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Top Categories</p>
+                        <ul className="space-y-1">{analysis.topCategories.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />{t}</li>)}</ul>
+                      </div>
+                    )}
+                    {analysis.suggestedTopics && (
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Suggested Topics</p>
+                        <ul className="space-y-1">{analysis.suggestedTopics.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-400 rounded-full shrink-0" />{t}</li>)}</ul>
+                      </div>
+                    )}
+                    {analysis.contentGaps && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Content Gaps</p>
+                        <ul className="space-y-1">{analysis.contentGaps.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-amber-400 rounded-full shrink-0" />{t}</li>)}</ul>
+                      </div>
+                    )}
+                    {analysis.avgLength && (
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Content Metrics</p>
+                        <p className="text-xs text-gray-700 dark:text-gray-300">Avg post length: <strong>{analysis.avgLength}</strong></p>
+                      </div>
+                    )}
+                    {analysis.message && <p className="col-span-2 text-sm text-gray-400 text-center py-4">{analysis.message}</p>}
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-purple-400" />AI Content Insights
-                </h3>
-                <button onClick={runAnalysis} disabled={analyzing || drafts.length < 2}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-medium hover:bg-purple-700 disabled:opacity-50">
-                  {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  {analyzing ? 'Analyzing...' : 'Run Analysis'}
-                </button>
-              </div>
-              {!analysis && !analyzing && (
-                <p className="text-sm text-gray-400 text-center py-8">Click "Run Analysis" for AI-powered insights on your content library</p>
-              )}
-              {analysis && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {analysis.topCategories && (
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Top Categories</p>
-                      <ul className="space-y-1">{analysis.topCategories.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-indigo-400 rounded-full shrink-0" />{t}</li>)}</ul>
-                    </div>
-                  )}
-                  {analysis.suggestedTopics && (
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Suggested Topics</p>
-                      <ul className="space-y-1">{analysis.suggestedTopics.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-400 rounded-full shrink-0" />{t}</li>)}</ul>
-                    </div>
-                  )}
-                  {analysis.contentGaps && (
-                    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">Content Gaps</p>
-                      <ul className="space-y-1">{analysis.contentGaps.map((t:string) => <li key={t} className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-amber-400 rounded-full shrink-0" />{t}</li>)}</ul>
-                    </div>
-                  )}
-                  {analysis.avgLength && (
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
-                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-2">Content Metrics</p>
-                      <p className="text-xs text-gray-700 dark:text-gray-300">Avg post length: <strong>{analysis.avgLength}</strong></p>
-                    </div>
-                  )}
-                  {analysis.message && <p className="col-span-2 text-sm text-gray-400 text-center py-4">{analysis.message}</p>}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

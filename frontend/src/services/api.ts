@@ -550,6 +550,10 @@ export const api = {
   aiAnalyzePattern: (post: string) =>
     request<any>('/content/ai/analyze-pattern', { method: 'POST', body: JSON.stringify({ post }) }),
   aiAnalyzeContent: () => request<any>('/content/ai/analyze'),
+  markDraftUsed: (id: string, platform?: string, note?: string) =>
+    request<any>(`/content/drafts/${id}/use`, { method: 'PATCH', body: JSON.stringify({ platform, note }) }),
+  aiImproveContent: (title: string, body: string, platform?: string, engagementScore?: number) =>
+    request<any>('/content/ai/improve', { method: 'POST', body: JSON.stringify({ title, body, platform, engagement_score: engagementScore }) }),
 };
 
 export function isAuthenticated() { return !!localStorage.getItem('accessToken'); }
