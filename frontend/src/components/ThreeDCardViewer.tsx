@@ -2,7 +2,7 @@ import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, Float, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { Download, X, Play, Square as StopIcon, Music, Upload, Film } from 'lucide-react';
+import { Download, X, Play, Square as StopIcon, Music, Upload, Film, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { CARD_THEMES, FONT_OPTIONS, drawCardToCanvas, drawDialogCardToCanvas, type CardTheme, type ExportFormat } from '../lib/contentExport';
 
@@ -153,13 +153,15 @@ function CaptureButton({ glRef, itemTitle, format }: { glRef: React.MutableRefOb
 
 // ── Main component ────────────────────────────────────────────────────────────
 interface Props {
-  item: any;
+  item?: any;
+  items?: any[];
+  initialIdx?: number;
   onClose: () => void;
 }
 
-export function ThreeDCardViewer({ item, onClose }: Props) {
+export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, onClose }: Props) {
   const [template, setTemplate]   = useState<Template3D>('float');
-  const [theme, setTheme]         = useState<CardTheme>(CARD_THEMES[1]); // Oxford default
+  const [theme, setTheme]         = useState<CardTheme>(CARD_THEMES[1]);
   const [fontId, setFontId]       = useState('georgia');
   const [format, setFormat]       = useState<ExportFormat>('post');
   const [showWm, setShowWm]       = useState(true);
@@ -167,8 +169,13 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
   const [musicFile, setMusicFile] = useState<File | null>(null);
   const [playing, setPlaying]     = useState(false);
   const [recording, setRecording] = useState(false);
+  const [idx, setIdx]             = useState(initialIdx);
   const glRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const allItems = items ?? (singleItem ? [singleItem] : []);
+  const item = allItems[idx] ?? allItems[0] ?? singleItem ?? {};
+  const total = allItems.length;
 
   const texture = useMemo(
     () => buildCardTexture(item, theme, fontId, format, wm, showWm),
@@ -212,11 +219,11 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
     });
   }, [template, item]);
 
-  const recordReel = useCallback(async () => {
+  const recordVideo = useCallback(async (durationMs = 5000) => {
     const gl = glRef.current;
     if (!gl) return;
     setRecording(true);
-    toast('Recording 5-second reel…');
+    toast(`Recording ${durationMs / 1000}s video…`);
     try {
       const chunks: Blob[] = [];
       const videoStream = (gl as any).captureStream(30) as MediaStream;
@@ -233,20 +240,22 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
       }
 
       const combined = new MediaStream(allTracks);
-      const rec = new MediaRecorder(combined, { mimeType: 'video/webm;codecs=vp9' });
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9' : 'video/webm';
+      const rec = new MediaRecorder(combined, { mimeType });
       rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       rec.onstop = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `reel_3d_${template}_${(item.title || '').slice(0, 12).replace(/[^\w]/g, '_')}.webm`;
+        a.download = `3d_${template}_${(item.title || '').slice(0, 15).replace(/[^\w]/g, '_').toLowerCase()}.webm`;
         a.click();
         URL.revokeObjectURL(a.href);
         setRecording(false);
-        toast.success('3D reel exported');
+        toast.success('Video exported — convert to MP4 at cloudconvert.com for Instagram');
       };
       rec.start();
-      setTimeout(() => rec.stop(), 5000);
+      setTimeout(() => rec.stop(), durationMs);
     } catch (e: any) {
       toast.error('Video export failed: ' + e.message);
       setRecording(false);
@@ -257,14 +266,50 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 bg-black/60 backdrop-blur border-b border-white/10">
-        <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-          <Film className="w-4 h-4 text-indigo-400" />3D Studio
-          <span className="text-[10px] text-white/40">— {TEMPLATE_3D_OPTIONS.find(t => t.id === template)?.name}</span>
-        </h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+            <Film className="w-4 h-4 text-indigo-400" />3D Studio
+            <span className="text-[10px] text-white/40">— {TEMPLATE_3D_OPTIONS.find(t => t.id === template)?.name}</span>
+          </h2>
+          {total > 1 && (
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0}
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 disabled:opacity-25 transition-all">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-white/50 min-w-[50px] text-center">{idx + 1} / {total}</span>
+              <button onClick={() => setIdx(i => Math.min(total - 1, i + 1))} disabled={idx === total - 1}
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-white/20 text-white/60 hover:text-white hover:border-white/40 disabled:opacity-25 transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
         <button onClick={onClose}><X className="w-5 h-5 text-white/60 hover:text-white" /></button>
       </div>
 
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Vertical card strip — left scroll rail when multiple items */}
+        {total > 1 && (
+          <div className="w-16 bg-black/40 border-r border-white/10 flex flex-col gap-2 p-2 overflow-y-auto">
+            {allItems.map((it, i) => (
+              <button key={i} onClick={() => setIdx(i)}
+                className="relative shrink-0 rounded-lg overflow-hidden border-2 transition-all"
+                style={{
+                  aspectRatio: '1/1.25',
+                  background: CARD_THEMES[(i % CARD_THEMES.length)].cssBg,
+                  borderColor: i === idx ? '#818cf8' : 'transparent',
+                  opacity: i === idx ? 1 : 0.45,
+                }}>
+                <p className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/80 p-0.5 text-center leading-tight line-clamp-3">
+                  {it.title?.slice(0, 30)}
+                </p>
+                <span className="absolute bottom-0.5 right-0.5 text-[7px] text-white/50 font-bold">{i + 1}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* 3D Viewport */}
         <div className="flex-1 relative">
           <Canvas gl={{ preserveDrawingBuffer: true }} shadows>
@@ -273,7 +318,7 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
           </Canvas>
           {recording && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-red-600/90 text-white rounded-full text-sm animate-pulse">
-              <div className="w-2.5 h-2.5 bg-white rounded-full" />Recording reel…
+              <div className="w-2.5 h-2.5 bg-white rounded-full" />Recording video…
             </div>
           )}
         </div>
@@ -369,16 +414,27 @@ export function ThreeDCardViewer({ item, onClose }: Props) {
 
           {/* Export */}
           <div className="space-y-2 mt-auto">
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Export</p>
             <button onClick={downloadFrame}
               className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-              <Download className="w-4 h-4" />Export 3D Frame
+              <ImageIcon className="w-4 h-4" />Save as Image (PNG)
             </button>
-            {format === 'reel' && (
-              <button onClick={recordReel} disabled={recording}
-                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-                {recording ? <><div className="w-3 h-3 bg-white rounded-full animate-pulse" />Recording…</> : <><Film className="w-4 h-4" />Export as Reel (5s)</>}
-              </button>
-            )}
+            <button onClick={() => recordVideo(5000)} disabled={recording}
+              className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+              {recording
+                ? <><div className="w-3 h-3 bg-white rounded-full animate-pulse" />Recording…</>
+                : <><Film className="w-4 h-4" />Export 5s Video (.webm)</>}
+            </button>
+            <button onClick={() => recordVideo(10000)} disabled={recording}
+              className="w-full py-2 border border-rose-600/50 hover:bg-rose-950/40 disabled:opacity-40 text-rose-400 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors">
+              {recording
+                ? 'Recording…'
+                : <><Film className="w-3.5 h-3.5" />Export 10s Video (.webm)</>}
+            </button>
+            <p className="text-[9px] text-gray-600 text-center leading-relaxed">
+              Convert .webm → MP4 at<br/>
+              <span className="text-indigo-400">cloudconvert.com</span> for Instagram
+            </p>
           </div>
         </div>
       </div>

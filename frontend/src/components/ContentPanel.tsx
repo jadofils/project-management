@@ -75,6 +75,144 @@ function AuthGate({ onAuth }: { onAuth: () => void }) {
   );
 }
 
+// ── Claude Mascot ─────────────────────────────────────────────────────────────
+function ClaudeMascot({ message, size = 'md', thinking = false }: { message?: string; size?: 'sm' | 'md'; thinking?: boolean }) {
+  const dim = size === 'sm' ? 44 : 60;
+  return (
+    <div className="flex items-end gap-2.5 select-none">
+      {message && (
+        <div className="relative bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-2xl rounded-bl-sm px-3 py-2.5 shadow-lg max-w-[200px]">
+          <p className="text-[11px] leading-relaxed text-gray-700 dark:text-gray-200 font-medium">{message}</p>
+          {thinking && (
+            <div className="flex gap-1 mt-1.5">
+              {[0,1,2].map(i => (
+                <span key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+          )}
+          <div className="absolute -bottom-2 left-5 w-0 h-0"
+               style={{ borderLeft:'8px solid transparent', borderRight:'4px solid transparent', borderTop:`8px solid white` }} />
+        </div>
+      )}
+      <svg width={dim} height={Math.round(dim * 1.28)} viewBox="0 0 56 72" fill="none" className="shrink-0 drop-shadow-md">
+        {/* Antenna */}
+        <line x1="28" y1="1" x2="28" y2="13" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="28" cy="3" r="5" fill="#818cf8"/>
+        <circle cx="28" cy="3" r="8" fill="#818cf8" opacity="0.15"/>
+        {/* Head */}
+        <rect x="3" y="11" width="50" height="38" rx="14" fill="#4f46e5"/>
+        <rect x="3" y="11" width="50" height="38" rx="14" fill="url(#headGrad)" opacity="0.3"/>
+        {/* Eye whites */}
+        <ellipse cx="18" cy="28" rx="9" ry="9" fill="white"/>
+        <ellipse cx="38" cy="28" rx="9" ry="9" fill="white"/>
+        {/* Pupils */}
+        <circle cx={thinking ? 20 : 19} cy={thinking ? 30 : 29} r="5.5" fill="#6366f1"/>
+        <circle cx={thinking ? 40 : 39} cy={thinking ? 30 : 29} r="5.5" fill="#6366f1"/>
+        {/* Shine */}
+        <circle cx={thinking ? 21.5 : 20.5} cy={thinking ? 28 : 27} r="2.2" fill="white"/>
+        <circle cx={thinking ? 41.5 : 40.5} cy={thinking ? 28 : 27} r="2.2" fill="white"/>
+        {/* Smile */}
+        <path d={thinking ? "M19 39 Q28 37 37 39" : "M19 39 Q28 46 37 39"}
+              stroke="rgba(255,255,255,0.75)" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+        {/* Body */}
+        <rect x="9" y="49" width="38" height="21" rx="9" fill="#4338ca" opacity="0.9"/>
+        {/* Chest orb */}
+        <circle cx="28" cy="59" r="6.5" fill="#818cf8"/>
+        <circle cx="29.5" cy="57.5" r="2.5" fill="white" opacity="0.65"/>
+        {/* Arms */}
+        <path d="M9 55 L1 47" stroke="#4338ca" strokeWidth="5.5" strokeLinecap="round"/>
+        <path d="M47 55 L55 47" stroke="#4338ca" strokeWidth="5.5" strokeLinecap="round"/>
+        <defs>
+          <linearGradient id="headGrad" x1="3" y1="11" x2="53" y2="49" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="white"/>
+            <stop offset="100%" stopColor="transparent"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
+// ── Single large card for card-by-card viewer ─────────────────────────────────
+function BigCard({ item, theme, fontCss, contentType }: {
+  item: any; theme: CardTheme; fontCss: string; contentType: ContentType;
+}) {
+  const dialogue: { speaker: string; text: string }[] | null = contentType === 'dialog'
+    ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
+    : null;
+  const scoreColor = item.engagementScore >= 8 ? '#22c55e' : item.engagementScore >= 6 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="relative rounded-3xl overflow-hidden w-full shadow-2xl"
+         style={{ background: theme.cssBg, color: theme.textColor, fontFamily: fontCss, minHeight: 380 }}>
+      {/* Decorative blobs */}
+      <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full pointer-events-none"
+           style={{ background: theme.textColor, opacity: 0.05 }} />
+      <div className="absolute -bottom-12 -left-10 w-40 h-40 rounded-full pointer-events-none"
+           style={{ background: theme.accentColor, opacity: 0.08 }} />
+
+      {/* Top badges */}
+      <div className="relative z-10 flex items-center justify-between px-5 pt-5 pb-2">
+        {item.bestPlatform ? (
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: theme.accentColor + '28', color: theme.accentColor }}>
+            {item.bestPlatform}
+          </span>
+        ) : <span />}
+        {item.engagementScore && (
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full shadow-sm"
+                style={{ background: scoreColor, color: '#fff' }}>
+            ⚡ {item.engagementScore}/10 viral score
+          </span>
+        )}
+      </div>
+
+      {/* Title */}
+      <div className="relative z-10 px-5 pb-3">
+        <h3 className="text-lg font-extrabold leading-snug">{item.title}</h3>
+      </div>
+
+      {/* Body */}
+      <div className="relative z-10 px-5 pb-4 flex-1">
+        {dialogue && dialogue.length > 0 ? (
+          <div className="space-y-2.5">
+            {dialogue.map((line, i) => (
+              <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
+                <div className="max-w-[85%]">
+                  <span className="text-[9px] font-bold uppercase opacity-60 px-1">
+                    {line.speaker === 'T' ? 'Tinyuwise' : 'Fatikaram'}
+                  </span>
+                  <div className="text-sm leading-relaxed px-3 py-2 rounded-2xl mt-0.5"
+                       style={{
+                         background: line.speaker === 'T' ? theme.accentColor + '40' : 'rgba(255,255,255,0.18)',
+                         color: theme.textColor,
+                       }}>
+                    {line.text}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ opacity: 0.88 }}>{item.body}</p>
+        )}
+      </div>
+
+      {/* Hashtags */}
+      {item.hashtags?.length > 0 && (
+        <div className="relative z-10 px-5 pb-5 flex flex-wrap gap-1.5">
+          {(item.hashtags as string[]).map((h: string) => (
+            <span key={h} className="text-[11px] font-bold" style={{ color: theme.accentColor }}>{h}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom stripe */}
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: theme.accentColor, opacity: 0.5 }} />
+    </div>
+  );
+}
+
 // ── Themed Content Card ───────────────────────────────────────────────────────
 function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, contentType }: {
   item: any; theme: CardTheme; fontCss: string; isSelected: boolean;
@@ -1178,6 +1316,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
   const [carouselModal, setCarouselModal] = useState<{ open: boolean; idx: number }>({ open: false, idx: 0 });
   const [studio3dItem, setStudio3dItem]     = useState<any | null>(null);
   const [sectionItem, setSectionItem]       = useState<any | null>(null);
+  const [cardIdx, setCardIdx]               = useState(0);
 
   // Viral analyzer
   const [viralText, setViralText]     = useState('');
@@ -1236,6 +1375,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
       const items = await api.aiBatchGenerate(selectedCat, genCount, customTopic || undefined, contentType, persona);
       if (!Array.isArray(items) || items.length === 0) { toast.error('AI returned no content. Set AI_API_KEY (OpenAI) or ANTHROPIC_API_KEY in your Render server environment variables.'); return; }
       setGenerated(items);
+      setCardIdx(0);
       setSelectedIdxs(new Set(items.map((_, i) => i)));
       const label = contentType === 'dialog' ? 'dialog cards' : contentType === 'reel' ? 'reel scripts' : contentType === 'audio' ? 'audio scripts' : 'posts';
       toast.success(`${items.length} ${label} generated`);
@@ -1245,6 +1385,17 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
 
   const toggleIdx = (i: number) => setSelectedIdxs(p => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n; });
   const toggleAll = () => setSelectedIdxs(selectedIdxs.size === generated.length ? new Set() : new Set(generated.map((_, i) => i)));
+
+  const removeCard = (i: number) => {
+    const next = generated.filter((_, idx) => idx !== i);
+    setGenerated(next);
+    setSelectedIdxs(prev => {
+      const n = new Set<number>();
+      [...prev].forEach(old => { if (old < i) n.add(old); else if (old > i) n.add(old - 1); });
+      return n;
+    });
+    setCardIdx(c => (next.length === 0 ? 0 : Math.min(c, next.length - 1)));
+  };
 
   const saveSelected = async () => {
     if (selectedIdxs.size === 0) return toast.error('Select items to save');
@@ -1310,7 +1461,11 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
       {editDraft    && <EditDraftModal draft={editDraft} categories={categories} onSave={u => setDrafts(p => p.map(d => d.id === u.id ? u : d))} onClose={() => setEditDraft(null)} />}
       {publishDraft && <PublishModal draft={publishDraft} projects={projects} onPublished={load} onClose={() => setPublishDraft(null)} />}
       {catModal.open && <CategoryFormModal cat={catModal.cat} onSave={load} onClose={() => setCatModal({ open: false })} />}
-      {studio3dItem && <ThreeDCardViewer item={studio3dItem} onClose={() => setStudio3dItem(null)} />}
+      {studio3dItem && (
+        studio3dItem.__all
+          ? <ThreeDCardViewer items={generated} initialIdx={cardIdx} onClose={() => setStudio3dItem(null)} />
+          : <ThreeDCardViewer item={studio3dItem} onClose={() => setStudio3dItem(null)} />
+      )}
       {sectionItem  && <SectionCarouselModal item={sectionItem} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setSectionItem(null)} />}
 
       {/* Header */}
@@ -1441,11 +1596,26 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
 
             {/* Generation panel */}
             <div className="rounded-2xl p-5" style={{ background: activeTheme.cssBg, color: activeTheme.textColor }}>
-              <p className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ fontFamily: fontCss, opacity: 0.9 }}>
-                <Sparkles className="w-4 h-4" />
-                {contentType === 'dialog' ? 'Dialog Card Generator' : contentType === 'reel' ? 'Reel Script Engine' : contentType === 'audio' ? 'Audio Script Engine' : 'Post Generator'}
-                {contentType === 'dialog' && <span className="text-[10px] font-normal opacity-70">Tinyuwizev1.1 vs Fatikaramuv1.0</span>}
-              </p>
+              <div className="flex items-start justify-between mb-4 gap-4">
+                <div>
+                  <p className="font-bold text-base flex items-center gap-2" style={{ fontFamily: fontCss }}>
+                    <Sparkles className="w-4 h-4" />
+                    {contentType === 'dialog' ? 'Dialog Card Generator' : contentType === 'reel' ? 'Reel Script Engine' : contentType === 'audio' ? 'Audio Script Engine' : 'Post Generator'}
+                  </p>
+                  {contentType === 'dialog' && (
+                    <p className="text-[11px] mt-0.5" style={{ opacity: 0.65 }}>Characters: Tinyuwizev1.1 vs Fatikaramuv1.0</p>
+                  )}
+                </div>
+                <ClaudeMascot
+                  size="sm"
+                  thinking={generating}
+                  message={generating
+                    ? `Writing ${genCount} ${contentType}s...`
+                    : generated.length > 0
+                      ? `I made ${generated.length} for you! 🎉`
+                      : `Ready to create ${genCount} ${contentType}${genCount > 1 ? 's' : ''}!`}
+                />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <div className="sm:col-span-2">
                   <label className="text-xs mb-1 block" style={{ opacity: 0.7 }}>
@@ -1478,42 +1648,152 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
               </button>
             </div>
 
-            {/* Results */}
+            {/* Results — card-by-card viewer */}
             {generated.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {generated.length} generated &nbsp;&middot;&nbsp; {selectedIdxs.size} selected
-                  </span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button onClick={toggleAll}
-                      className="text-xs text-indigo-500 hover:text-indigo-700 font-medium px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-                      {selectedIdxs.size === generated.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                    <button onClick={() => setCarouselModal({ open: true, idx: 0 })}
+              <div className="space-y-4">
+
+                {/* Status bar */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                      Card {cardIdx + 1} <span className="text-gray-400 font-normal">of {generated.length}</span>
+                    </span>
+                    <div className="flex gap-1">
+                      {generated.map((_, i) => (
+                        <button key={i} onClick={() => setCardIdx(i)}
+                          className="rounded-full transition-all"
+                          style={{
+                            width: i === cardIdx ? 20 : 8,
+                            height: 8,
+                            background: i === cardIdx
+                              ? activeTheme.accentColor
+                              : selectedIdxs.has(i)
+                                ? activeTheme.accentColor + '55'
+                                : '#d1d5db',
+                          }} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-400">{selectedIdxs.size} kept</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setCarouselModal({ open: true, idx: cardIdx })}
                       className="flex items-center gap-1.5 px-3 py-1.5 border dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <ChevronRight className="w-3 h-3" />Browse Carousel
+                      <Eye className="w-3 h-3" />Preview
+                    </button>
+                    <button onClick={() => setStudio3dItem({ __all: true })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+                      <Sparkles className="w-3 h-3" />3D View All
                     </button>
                     {selectedIdxs.size > 0 && (
                       <>
+                        <button onClick={async () => {
+                          const items = [...selectedIdxs].map(i => generated[i]);
+                          toast('Downloading slides…');
+                          const { downloadMultiple } = await import('../lib/contentExport');
+                          await downloadMultiple(items, { format: 'post', theme: activeTheme, fontId, watermark: 'Content Studio', showWatermark: false });
+                          toast.success(`${items.length} slides downloaded`);
+                        }} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700">
+                          <Download className="w-3 h-3" />Slides ({selectedIdxs.size} PNG)
+                        </button>
                         <button onClick={() => setExportModal(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 dark:bg-gray-700 text-white rounded-xl text-xs font-semibold hover:bg-gray-700">
-                          <Download className="w-3 h-3" />Download {selectedIdxs.size}
+                          <Download className="w-3 h-3" />Export Options
                         </button>
                         <button onClick={saveSelected} disabled={saving}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50">
-                          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}Save to Library
+                          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}Save {selectedIdxs.size} to Library
                         </button>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+
+                {/* Main viewer: prev | card | next */}
+                <div className="flex items-stretch gap-3">
+                  {/* Prev arrow */}
+                  <button onClick={() => setCardIdx(c => Math.max(0, c - 1))}
+                    disabled={cardIdx === 0}
+                    className="flex-shrink-0 w-10 flex items-center justify-center rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 disabled:opacity-20 transition-all shadow-sm self-center h-14">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {/* Card */}
+                  <div className="flex-1 min-w-0">
+                    <BigCard item={generated[cardIdx]} theme={activeTheme} fontCss={fontCss} contentType={contentType} />
+                  </div>
+
+                  {/* Next arrow */}
+                  <button onClick={() => setCardIdx(c => Math.min(generated.length - 1, c + 1))}
+                    disabled={cardIdx === generated.length - 1}
+                    className="flex-shrink-0 w-10 flex items-center justify-center rounded-2xl border dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 disabled:opacity-20 transition-all shadow-sm self-center h-14">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Action buttons for current card */}
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <button onClick={() => removeCard(cardIdx)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <X className="w-3.5 h-3.5" />Discard
+                  </button>
+
+                  <button onClick={() => toggleIdx(cardIdx)}
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={{
+                      background: selectedIdxs.has(cardIdx) ? activeTheme.accentColor : 'transparent',
+                      color: selectedIdxs.has(cardIdx) ? activeTheme.from : activeTheme.accentColor,
+                      border: `2px solid ${activeTheme.accentColor}`,
+                    }}>
+                    {selectedIdxs.has(cardIdx) ? (
+                      <><Check className="w-3.5 h-3.5" />Kept</>
+                    ) : (
+                      <><Star className="w-3.5 h-3.5" />Keep this</>
+                    )}
+                  </button>
+
+                  {cardIdx < generated.length - 1 ? (
+                    <button onClick={() => { toggleIdx(cardIdx); setCardIdx(c => c + 1); }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                      Keep &amp; Next <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button onClick={saveSelected} disabled={saving || selectedIdxs.size === 0}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 transition-colors">
+                      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      Save All {selectedIdxs.size > 0 ? `(${selectedIdxs.size})` : ''}
+                    </button>
+                  )}
+                </div>
+
+                {/* Thumbnail strip */}
+                <div className="flex gap-2 overflow-x-auto pb-1">
                   {generated.map((item, i) => (
-                    <ContentCard key={i} item={item} theme={activeTheme} fontCss={fontCss}
-                      isSelected={selectedIdxs.has(i)} contentType={contentType}
-                      onToggle={() => toggleIdx(i)}
-                      onPreview={() => setCarouselModal({ open: true, idx: i })} />
+                    <button key={i} onClick={() => setCardIdx(i)}
+                      className="shrink-0 relative rounded-xl overflow-hidden transition-all"
+                      style={{
+                        width: 64, height: 80,
+                        background: activeTheme.cssBg,
+                        outline: i === cardIdx ? `2.5px solid ${activeTheme.accentColor}` : selectedIdxs.has(i) ? `1.5px solid ${activeTheme.accentColor}88` : '1.5px solid transparent',
+                        opacity: i === cardIdx ? 1 : 0.65,
+                        transform: i === cardIdx ? 'scale(1.05)' : undefined,
+                      }}>
+                      <div className="absolute inset-0 p-1.5 flex flex-col gap-0.5">
+                        <p className="text-[7px] font-bold leading-tight line-clamp-3"
+                           style={{ color: activeTheme.textColor, fontFamily: fontCss }}>
+                          {item.title}
+                        </p>
+                      </div>
+                      <div className="absolute top-1 right-1">
+                        {selectedIdxs.has(i) && (
+                          <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                               style={{ background: activeTheme.accentColor }}>
+                            <Check className="w-2 h-2" style={{ color: activeTheme.from }} />
+                          </div>
+                        )}
+                      </div>
+                      <span className="absolute bottom-1 left-1 text-[7px] font-bold opacity-50"
+                            style={{ color: activeTheme.textColor }}>{i + 1}</span>
+                    </button>
                   ))}
                 </div>
               </div>

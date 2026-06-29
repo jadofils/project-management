@@ -346,7 +346,7 @@ export default function App() {
 
   const projectPerms: ProjectPermissions = user
     ? computePermissions(user, currentMember)
-    : { canManageMembers: false, canCreateTask: false, canEditTask: false, canDeleteTask: false, canComment: false, canTickSubtask: false, canDrag: false, canManageProject: false, isManager: false };
+    : { canManageMembers: false, canCreateTask: false, canEditTask: false, canDeleteTask: false, canComment: false, canTickSubtask: false, canDrag: false, canManageProject: false, isManager: false, canAssignTask: false };
 
   const currentMemberRoles = currentMember?.roles?.length
     ? currentMember.roles
