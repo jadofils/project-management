@@ -136,6 +136,7 @@ export interface Task {
   sort_order: number; due_date?: string; original_due_date?: string;
   completed_at?: string; completed_by?: string;
   liked_by?: string[] | null;
+  image_urls?: string[] | null;
   created_at: string; updated_at?: string;
 }
 
@@ -282,6 +283,8 @@ export const api = {
   getTasks: (projectId: string) => request<Task[]>(`/tasks/project/${projectId}`),
   createTask: (dto: Partial<Task> & { project_id: string; title: string; module?: string }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(dto) }),
   updateTask: (id: string, dto: Partial<Task>) => request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  uploadTaskImages: (taskId: string, base64Images: string[]) => request<Task>(`/tasks/${taskId}/images`, { method: 'POST', body: JSON.stringify({ images: base64Images }) }),
+  removeTaskImage: (taskId: string, url: string) => request<Task>(`/tasks/${taskId}/images`, { method: 'DELETE', body: JSON.stringify({ url }) }),
   reorderTasks: (orders: { id: string; sort_order: number; status: string }[]) =>
     request<void>('/tasks/reorder', { method: 'POST', body: JSON.stringify({ orders }) }),
   deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Lock, Loader2, X, Trash2, Send, Eye, EyeOff, Brain, Lightbulb, Heart,
   FlaskConical, Puzzle, Globe, Sparkles, Wand2, Download, FileText,
@@ -9,22 +9,28 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, type Project } from '../services/api';
+import { ThreeDCardViewer } from './ThreeDCardViewer';
 import {
-  CARD_THEMES, FONT_OPTIONS, downloadCardAsImage, downloadMultiple,
+  CARD_THEMES, FONT_OPTIONS, downloadCardAsImage, downloadMultiple, downloadAsCarousel,
   type CardTheme, type ExportFormat,
 } from '../lib/contentExport';
 
 // ── Icon map ──────────────────────────────────────────────────────────────────
-const ICON_MAP: Record<string, React.ElementType> = {
-  smile: Smile, brain: Brain, lightbulb: Lightbulb, heart: Heart,
-  flask: FlaskConical, puzzle: Puzzle, globe: Globe, sparkles: Sparkles,
-  star: Star, zap: Zap, trending: TrendingUp, book: BookOpen,
+type IconComp = React.ComponentType<{ className?: string }>;
+const ICON_MAP: Record<string, IconComp> = {
+  smile: Smile as IconComp, brain: Brain as IconComp, lightbulb: Lightbulb as IconComp,
+  heart: Heart as IconComp, flask: FlaskConical as IconComp, puzzle: Puzzle as IconComp,
+  globe: Globe as IconComp, sparkles: Sparkles as IconComp, star: Star as IconComp,
+  zap: Zap as IconComp, trending: TrendingUp as IconComp, book: BookOpen as IconComp,
 };
-const getIcon = (k: string): React.ElementType => ICON_MAP[k] || Sparkles;
+const getIcon = (k: string): IconComp => ICON_MAP[k] || (Sparkles as IconComp);
 
 const PAGE_SIZE = 20;
 type ContentTab  = 'generate' | 'drafts' | 'published' | 'categories' | 'analytics';
-type ContentType = 'post' | 'reel' | 'audio';
+type ContentType = 'post' | 'reel' | 'audio' | 'dialog';
+
+const PERSONAS = ['Universal', 'Gen Z', 'Millennials', 'Professionals', 'Students', 'Parents'] as const;
+type Persona = typeof PERSONAS[number];
 
 interface Props { projects: Project[]; section?: string; isAdmin?: boolean; }
 
@@ -74,6 +80,12 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
   item: any; theme: CardTheme; fontCss: string; isSelected: boolean;
   onToggle: () => void; onPreview: () => void; contentType: ContentType;
 }) {
+  const dialogue: { speaker: string; text: string }[] | null = contentType === 'dialog'
+    ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
+    : null;
+
+  const scoreColor = item.engagementScore >= 8 ? '#22c55e' : item.engagementScore >= 6 ? '#f59e0b' : '#ef4444';
+
   return (
     <div onClick={onToggle}
       className="relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-200"
@@ -119,6 +131,16 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
         </div>
       )}
 
+      {/* Engagement score badge */}
+      {item.engagementScore && (
+        <div className="absolute bottom-2.5 right-2.5 z-20">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow"
+            style={{ background: scoreColor, color: '#fff' }}>
+            {item.engagementScore}/10
+          </span>
+        </div>
+      )}
+
       {/* Body */}
       <div className="relative z-10 p-4 flex flex-col h-full gap-2">
         {item.bestPlatform ? (
@@ -130,10 +152,26 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
 
         <h3 className="font-bold text-sm leading-snug line-clamp-3 flex-shrink-0">{item.title}</h3>
 
-        <p className="text-xs leading-relaxed line-clamp-6 flex-1"
-           style={{ opacity: 0.82, whiteSpace: 'pre-wrap' }}>
-          {item.body}
-        </p>
+        {dialogue && dialogue.length > 0 ? (
+          <div className="flex-1 space-y-1.5 overflow-hidden">
+            {dialogue.slice(0, 5).map((line, i) => (
+              <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
+                <span className="text-[9px] leading-relaxed px-2 py-1 rounded-xl max-w-[88%] break-words"
+                  style={{
+                    background: line.speaker === 'T' ? theme.accentColor + '38' : 'rgba(255,255,255,0.15)',
+                    color: theme.textColor,
+                  }}>
+                  {line.text.slice(0, 55)}{line.text.length > 55 ? '…' : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs leading-relaxed line-clamp-6 flex-1"
+             style={{ opacity: 0.82, whiteSpace: 'pre-wrap' }}>
+            {item.body}
+          </p>
+        )}
 
         {item.hashtags?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-auto pt-1">
@@ -152,15 +190,25 @@ function ContentCard({ item, theme, fontCss, isSelected, onToggle, onPreview, co
 }
 
 // ── Preview Modal ─────────────────────────────────────────────────────────────
-function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
+function PreviewModal({ item, theme, fontCss, fontId, onClose, onOpen3D, onSections }: {
   item: any; theme: CardTheme; fontCss: string; fontId: string; onClose: () => void;
+  onOpen3D?: () => void; onSections?: () => void;
 }) {
-  const [pTheme, setPTheme]   = useState<CardTheme>(theme);
-  const [format, setFormat]   = useState<ExportFormat>('post');
-  const [showWm, setShowWm]   = useState(true);
-  const [wm, setWm]           = useState('Tinyuwizev1.1');
-  const [dl, setDl]           = useState(false);
+  const [pTheme, setPTheme]     = useState<CardTheme>(theme);
+  const [format, setFormat]     = useState<ExportFormat>('post');
+  const [showWm, setShowWm]     = useState(true);
+  const [wm, setWm]             = useState('Tinyuwizev1.1');
+  const [dl, setDl]             = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [formatting, setFmt]    = useState(false);
+  const [fmtPlatform, setFmtPlatform] = useState('instagram');
+  const [fmtResult, setFmtResult]     = useState<any>(null);
+  const [showVariants, setShowVariants] = useState(false);
+  const [variants, setVariants]         = useState<any[]>([]);
+  const [loadingVariants, setLdVar]     = useState(false);
+
+  const dialogue: { speaker: string; text: string }[] | null =
+    item.dialogue ?? (item.content_type === 'dialog' ? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })() : null);
 
   const download = async () => {
     setDl(true);
@@ -173,11 +221,52 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
 
   const speak = () => {
     if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
-    const utt = new SpeechSynthesisUtterance(`${item.title}. ${item.body}`);
+    const text = dialogue
+      ? dialogue.map(l => `${l.speaker === 'T' ? 'Tinyuwize: ' : 'Fatikara: '}${l.text}`).join('. ')
+      : `${item.title}. ${item.body}`;
+    const utt = new SpeechSynthesisUtterance(text);
     utt.rate = 0.92; utt.pitch = 1;
     utt.onend = () => setSpeaking(false);
     setSpeaking(true);
     window.speechSynthesis.speak(utt);
+  };
+
+  const formatForPlatform = async () => {
+    setFmt(true); setFmtResult(null);
+    try {
+      const r = await api.aiFormatContent(item.title, item.body || '', fmtPlatform);
+      setFmtResult(r);
+    } catch { toast.error('Format failed'); }
+    finally { setFmt(false); }
+  };
+
+  const loadVariants = async () => {
+    setLdVar(true); setVariants([]);
+    try {
+      const r = await api.aiGenerateVariants(item.title, item.body || '');
+      setVariants(Array.isArray(r) ? r : []);
+      setShowVariants(true);
+    } catch { toast.error('Variants failed'); }
+    finally { setLdVar(false); }
+  };
+
+  const copyAsThread = () => {
+    const body = item.body || '';
+    const chunks: string[] = [];
+    let remaining = body;
+    let n = 1;
+    while (remaining.length > 0) {
+      const num = `${n}/`;
+      const max = 280 - num.length - 3;
+      if (remaining.length <= max + 3) { chunks.push(`${num} ${remaining}`); break; }
+      let cut = remaining.lastIndexOf(' ', max);
+      if (cut < 0) cut = max;
+      chunks.push(`${num} ${remaining.slice(0, cut).trim()}…`);
+      remaining = remaining.slice(cut).trim();
+      n++;
+    }
+    navigator.clipboard.writeText(chunks.join('\n\n'));
+    toast.success(`Copied as ${chunks.length}-part thread`);
   };
 
   return (
@@ -201,10 +290,31 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
               </span>
             )}
             <h3 className="font-bold text-base leading-snug">{item.title}</h3>
-            <p className="text-[11px] leading-relaxed flex-1 overflow-y-auto"
-               style={{ opacity: 0.85, whiteSpace: 'pre-wrap' }}>
-              {item.body}
-            </p>
+            {dialogue && dialogue.length > 0 ? (
+              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                {dialogue.map((line, i) => (
+                  <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
+                    <div className="max-w-[88%]">
+                      <p className="text-[8px] font-bold mb-0.5 opacity-70" style={{ textAlign: line.speaker === 'T' ? 'left' : 'right' }}>
+                        {line.speaker === 'T' ? 'Tinyuwize' : 'Fatikara'}
+                      </p>
+                      <span className="text-[9px] leading-relaxed px-2 py-1 rounded-xl inline-block"
+                        style={{
+                          background: line.speaker === 'T' ? pTheme.accentColor + '38' : 'rgba(255,255,255,0.2)',
+                          color: pTheme.textColor,
+                        }}>
+                        {line.text}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] leading-relaxed flex-1 overflow-y-auto"
+                 style={{ opacity: 0.85, whiteSpace: 'pre-wrap' }}>
+                {fmtResult ? fmtResult.body : item.body}
+              </p>
+            )}
             {item.hashtags?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 shrink-0">
                 {(item.hashtags as string[]).slice(0, 5).map((h: string) => (
@@ -219,9 +329,9 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
         </div>
 
         {/* Controls panel */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-68 max-h-[90vh] overflow-y-auto" style={{ width: 268 }}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 max-h-[90vh] overflow-y-auto" style={{ width: 280 }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">Preview</span>
+            <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">Preview & Export</span>
             <button onClick={onClose}><X className="w-4 h-4 text-gray-400" /></button>
           </div>
 
@@ -253,10 +363,10 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
           </div>
           {showWm && (
             <input value={wm} onChange={e => setWm(e.target.value)}
-              className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-indigo-300 outline-none" />
+              className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-indigo-300 outline-none" />
           )}
 
-          <div className="space-y-2 mt-2">
+          <div className="space-y-2">
             <button onClick={download} disabled={dl}
               className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2">
               {dl ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -266,11 +376,89 @@ function PreviewModal({ item, theme, fontCss, fontId, onClose }: {
               className={`w-full py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border transition-colors ${speaking ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               {speaking ? <><StopIcon className="w-3.5 h-3.5" />Stop</> : <><Volume2 className="w-3.5 h-3.5" />Play Audio</>}
             </button>
-            <button onClick={() => { navigator.clipboard.writeText(`${item.title}\n\n${item.body}`); toast.success('Copied'); }}
+            <button onClick={() => { navigator.clipboard.writeText(`${item.title}\n\n${dialogue ? dialogue.map(l=>`${l.speaker==='T'?'T: ':'F: '}${l.text}`).join('\n') : item.body}`); toast.success('Copied'); }}
               className="w-full py-2 border dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-2">
               <Copy className="w-3.5 h-3.5" />Copy Text
             </button>
+            {!dialogue && (
+              <button onClick={copyAsThread}
+                className="w-full py-2 border dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-2">
+                <FileText className="w-3.5 h-3.5" />Copy as Thread
+              </button>
+            )}
+            {onSections && !dialogue && (
+              <button onClick={() => { onClose(); onSections(); }}
+                className="w-full py-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 flex items-center justify-center gap-2 transition-opacity">
+                <ChevronRight className="w-3.5 h-3.5" />View as Section Slides
+              </button>
+            )}
+            {onOpen3D && (
+              <button onClick={() => { onClose(); onOpen3D(); }}
+                className="w-full py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 flex items-center justify-center gap-2 transition-opacity">
+                <Film className="w-3.5 h-3.5" />Open in 3D Studio
+              </button>
+            )}
           </div>
+
+          {/* Platform formatter */}
+          {!dialogue && (
+            <div className="mt-4 pt-4 border-t dark:border-gray-700">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Platform Formatter</p>
+              <div className="flex gap-2 mb-2">
+                <select value={fmtPlatform} onChange={e => setFmtPlatform(e.target.value)}
+                  className="flex-1 border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-300 outline-none">
+                  {['instagram','tiktok','twitter','linkedin','facebook'].map(p => (
+                    <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                  ))}
+                </select>
+                <button onClick={formatForPlatform} disabled={formatting}
+                  className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                  {formatting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}Format
+                </button>
+              </div>
+              {fmtResult && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 text-xs">
+                  <p className="font-semibold text-purple-700 dark:text-purple-400 mb-1">{fmtResult.title}</p>
+                  <p className="text-gray-600 dark:text-gray-400 line-clamp-3">{fmtResult.body}</p>
+                  {fmtResult.note && <p className="text-[10px] text-purple-500 mt-1 italic">{fmtResult.note}</p>}
+                  <button onClick={() => navigator.clipboard.writeText(`${fmtResult.title}\n\n${fmtResult.body}`).then(() => toast.success('Copied'))}
+                    className="mt-1.5 text-purple-600 text-[10px] font-medium hover:underline flex items-center gap-1">
+                    <Copy className="w-3 h-3" />Copy formatted
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* A/B title variants */}
+          {!dialogue && (
+            <div className="mt-4 pt-4 border-t dark:border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">A/B Title Variants</p>
+                <button onClick={loadVariants} disabled={loadingVariants}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-medium hover:bg-amber-600 disabled:opacity-50">
+                  {loadingVariants ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}Generate
+                </button>
+              </div>
+              {showVariants && variants.length > 0 && (
+                <div className="space-y-1.5">
+                  {variants.map((v, i) => (
+                    <div key={i} className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-2.5">
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-100 leading-snug">{v.title}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 font-medium">{v.trigger}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(v.title); toast.success('Copied'); }}
+                          className="text-[9px] text-amber-600 hover:underline flex items-center gap-0.5">
+                          <Copy className="w-2.5 h-2.5" />copy
+                        </button>
+                      </div>
+                      {v.why && <p className="text-[9px] text-gray-400 mt-0.5 italic">{v.why}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -284,14 +472,20 @@ function ExportModal({ items, theme, fontId, onClose }: {
   const [format, setFormat]   = useState<ExportFormat>('post');
   const [showWm, setShowWm]   = useState(true);
   const [wm, setWm]           = useState('Tinyuwizev1.1');
+  const [mode, setMode]       = useState<'separate' | 'carousel'>('separate');
   const [progress, setProg]   = useState<{ done: number; total: number } | null>(null);
 
   const run = async () => {
     setProg({ done: 0, total: items.length });
+    const opts = { format, theme, fontId, watermark: wm, showWatermark: showWm };
     try {
-      await downloadMultiple(items, { format, theme, fontId, watermark: wm, showWatermark: showWm },
-        (done, total) => setProg({ done, total }));
-      toast.success(`${items.length} ${format === 'reel' ? 'reels' : 'images'} downloaded`);
+      if (mode === 'carousel') {
+        await downloadAsCarousel(items, opts, (done, total) => setProg({ done, total }));
+        toast.success(`${items.length} Instagram carousel slides downloaded`);
+      } else {
+        await downloadMultiple(items, opts, (done, total) => setProg({ done, total }));
+        toast.success(`${items.length} ${format === 'reel' ? 'reels' : 'images'} downloaded`);
+      }
       onClose();
     } catch { toast.error('Export failed'); setProg(null); }
   };
@@ -350,14 +544,191 @@ function ExportModal({ items, theme, fontId, onClose }: {
               <p className="text-[10px] text-gray-400 mt-1">Added subtly to each exported image</p>
             </div>
 
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Download Mode</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['separate', 'Separate Files', 'Individual downloads'],
+                  ['carousel', 'Instagram Carousel', 'Numbered 1/N slides'],
+                ] as const).map(([m, label, sub]) => (
+                  <button key={m} onClick={() => setMode(m)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${mode === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+                    <p className={`text-xs font-semibold ${mode === m ? 'text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>{label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button onClick={run}
               className="w-full py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 flex items-center justify-center gap-2">
               <Download className="w-4 h-4" />
-              Download {items.length} {format === 'reel' ? 'Reel' : 'Image'}{items.length !== 1 ? 's' : ''}
+              {mode === 'carousel' ? `Download ${items.length} Carousel Slides` : `Download ${items.length} ${format === 'reel' ? 'Reel' : 'Image'}${items.length !== 1 ? 's' : ''}`}
             </button>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Carousel Modal ────────────────────────────────────────────────────────────
+function CarouselModal({ items, initialIdx, theme, fontCss, fontId, contentType, onClose }: {
+  items: any[]; initialIdx: number; theme: CardTheme; fontCss: string; fontId: string;
+  contentType: ContentType; onClose: () => void;
+}) {
+  const [idx, setIdx]           = useState(initialIdx);
+  const [format, setFormat]     = useState<ExportFormat>('post');
+  const [showWm, setShowWm]     = useState(true);
+  const [wm, setWm]             = useState('Tinyuwizev1.1');
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const item = items[idx];
+  const dialogue: { speaker: string; text: string }[] | null =
+    contentType === 'dialog'
+      ? (item.dialogue ?? (() => { try { return JSON.parse(item.body || '[]'); } catch { return null; } })())
+      : null;
+
+  const prev = () => setIdx(i => (i - 1 + items.length) % items.length);
+  const next = () => setIdx(i => (i + 1) % items.length);
+
+  const dlSingle = async () => {
+    await downloadCardAsImage(item, { format, theme, fontId, watermark: wm, showWatermark: showWm });
+    toast.success('Downloaded');
+  };
+
+  const dlCarousel = async () => {
+    setProgress({ done: 0, total: items.length });
+    try {
+      await downloadAsCarousel(items, { format, theme, fontId, watermark: wm, showWatermark: showWm },
+        (done, total) => setProgress({ done, total }));
+      toast.success(`${items.length} carousel slides downloaded`);
+    } catch { toast.error('Export failed'); }
+    finally { setProgress(null); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4" onClick={onClose}>
+      <div className="relative w-full max-w-5xl flex items-center justify-center gap-4" onClick={e => e.stopPropagation()}>
+
+        {/* Prev */}
+        <button onClick={prev}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-white" />
+        </button>
+
+        {/* Card */}
+        <div className="flex flex-col items-center gap-4">
+          {/* Counter */}
+          <div className="flex items-center gap-2 mb-1">
+            {items.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)}
+                className="transition-all rounded-full"
+                style={{ width: i === idx ? 20 : 8, height: 8, background: i === idx ? theme.accentColor : 'rgba(255,255,255,0.35)' }} />
+            ))}
+          </div>
+
+          <div className="rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: theme.cssBg, color: theme.textColor, fontFamily: fontCss,
+              width: format === 'reel' ? 280 : 420,
+              height: format === 'reel' ? 498 : 420,
+            }}>
+            <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
+                 style={{ background: theme.textColor, opacity: 0.05 }} />
+            <div className="relative z-10 p-6 flex flex-col h-full gap-3">
+              {item.bestPlatform && (
+                <span className="self-start text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: theme.accentColor + '22', color: theme.accentColor }}>
+                  {item.bestPlatform}
+                </span>
+              )}
+              <h3 className="font-bold text-lg leading-snug">{item.title}</h3>
+              {dialogue && dialogue.length > 0 ? (
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {dialogue.map((line, i) => (
+                    <div key={i} className={`flex ${line.speaker === 'T' ? 'justify-start' : 'justify-end'}`}>
+                      <div className="max-w-[86%]">
+                        <p className="text-[9px] font-bold mb-0.5 opacity-60" style={{ textAlign: line.speaker === 'T' ? 'left' : 'right' }}>
+                          {line.speaker === 'T' ? 'Tinyuwize' : 'Fatikara'}
+                        </p>
+                        <span className="text-xs leading-relaxed px-2.5 py-1.5 rounded-2xl inline-block"
+                          style={{ background: line.speaker === 'T' ? theme.accentColor + '35' : 'rgba(255,255,255,0.18)', color: theme.textColor }}>
+                          {line.text}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed flex-1 overflow-y-auto" style={{ opacity: 0.85, whiteSpace: 'pre-wrap' }}>
+                  {item.body}
+                </p>
+              )}
+              {item.hashtags?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 shrink-0">
+                  {(item.hashtags as string[]).slice(0, 6).map((h: string) => (
+                    <span key={h} className="text-[10px] font-semibold" style={{ color: theme.accentColor }}>{h}</span>
+                  ))}
+                </div>
+              )}
+              {showWm && wm && <p className="text-[9px] text-right opacity-35">{wm}</p>}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: theme.accentColor, opacity: 0.35 }} />
+          </div>
+
+          <p className="text-white/50 text-xs">{idx + 1} of {items.length}</p>
+
+          {/* Controls */}
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-4 flex flex-col gap-3 w-full max-w-sm">
+            <div className="flex gap-2">
+              {([['post','Post 1:1', ImageIcon], ['reel','Reel 9:16', Film]] as const).map(([f, label, Icon]) => (
+                <button key={f} onClick={() => setFormat(f)}
+                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${format === f ? 'bg-white text-gray-900' : 'bg-white/15 text-white/70 hover:bg-white/25'}`}>
+                  <Icon className="w-3 h-3" />{label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={wm} onChange={e => setWm(e.target.value)} placeholder="Watermark"
+                className="flex-1 bg-white/15 text-white placeholder-white/40 rounded-xl px-3 py-1.5 text-xs outline-none focus:bg-white/25" />
+              <button onClick={() => setShowWm(s => !s)}
+                className={`w-9 h-5 rounded-full transition-colors flex items-center shrink-0 ${showWm ? 'bg-indigo-400 justify-end' : 'bg-white/20 justify-start'}`}>
+                <span className="w-4 h-4 bg-white rounded-full mx-0.5 shadow" />
+              </button>
+            </div>
+            {progress ? (
+              <div>
+                <div className="w-full bg-white/20 rounded-full h-1.5 mb-1">
+                  <div className="bg-indigo-400 h-1.5 rounded-full transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                </div>
+                <p className="text-white/60 text-xs text-center">{progress.done}/{progress.total} slides…</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={dlSingle}
+                  className="py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  <Download className="w-3.5 h-3.5" />This slide
+                </button>
+                <button onClick={dlCarousel}
+                  className="py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors">
+                  <Download className="w-3.5 h-3.5" />Full Carousel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Next */}
+        <button onClick={next}
+          className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0 transition-colors">
+          <ChevronRight className="w-6 h-6 text-white" />
+        </button>
+      </div>
+
+      <button onClick={onClose} className="absolute top-4 right-4 text-white/60 hover:text-white">
+        <X className="w-6 h-6" />
+      </button>
     </div>
   );
 }
@@ -485,14 +856,16 @@ function CategoryFormModal({ cat, onSave, onClose }: { cat?: any; onSave: () => 
 function PublishModal({ draft, projects, onPublished, onClose }: {
   draft: any; projects: Project[]; onPublished: () => void; onClose: () => void;
 }) {
-  const [projectId, setPid] = useState(projects[0]?.id || '');
-  const [pub, setPub]       = useState(false);
+  const [projectId, setPid]   = useState(projects[0]?.id || '');
+  const [schedAt, setSchedAt] = useState('');
+  const [pub, setPub]         = useState(false);
+  const isScheduled = schedAt.trim().length > 0;
   const publish = async () => {
     if (!projectId) return toast.error('Select a project');
     setPub(true);
     try {
-      await api.publishContentDraft(draft.id, projectId);
-      toast.success('Published'); onPublished(); onClose();
+      await api.publishContentDraft(draft.id, projectId, isScheduled ? new Date(schedAt).toISOString() : undefined);
+      toast.success(isScheduled ? 'Scheduled' : 'Published'); onPublished(); onClose();
     } catch (e: any) { toast.error(e.message || 'Failed'); }
     finally { setPub(false); }
   };
@@ -502,22 +875,36 @@ function PublishModal({ draft, projects, onPublished, onClose }: {
            onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b dark:border-gray-700">
           <span className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <Send className="w-4 h-4 text-green-500" />Publish Draft
+            <Send className="w-4 h-4 text-green-500" />{isScheduled ? 'Schedule Post' : 'Publish Draft'}
           </span>
           <button onClick={onClose}><X className="w-4 h-4 text-gray-400" /></button>
         </div>
         <div className="p-5 space-y-3">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Marking <strong className="text-gray-800 dark:text-gray-100">"{draft.title}"</strong> as published.</p>
-          <select value={projectId} onChange={e => setPid(e.target.value)}
-            className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none">
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            <strong className="text-gray-800 dark:text-gray-100">"{draft.title}"</strong>
+          </p>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 mb-1 block">Project</label>
+            <select value={projectId} onChange={e => setPid(e.target.value)}
+              className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none">
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 mb-1 block">Schedule for later <span className="font-normal text-gray-400">(optional)</span></label>
+            <input type="datetime-local" value={schedAt} onChange={e => setSchedAt(e.target.value)}
+              className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 outline-none" />
+            {isScheduled && (
+              <p className="text-[10px] text-amber-500 mt-1">Will be marked as "scheduled" — set up a cron to auto-publish</p>
+            )}
+          </div>
         </div>
         <div className="flex justify-end gap-2 p-5 border-t dark:border-gray-700">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">Cancel</button>
           <button onClick={publish} disabled={pub || !projectId}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-1.5">
-            {pub ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}Publish
+            className={`px-4 py-2 text-white rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5 ${isScheduled ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}>
+            {pub ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            {isScheduled ? 'Schedule' : 'Publish Now'}
           </button>
         </div>
       </div>
@@ -526,9 +913,9 @@ function PublishModal({ draft, projects, onPublished, onClose }: {
 }
 
 // ── Draft list row ────────────────────────────────────────────────────────────
-function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview }: {
+function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview, onSlides }: {
   d: any; categories: any[];
-  onEdit: () => void; onDelete: () => void; onPublish: () => void; onPreview: () => void;
+  onEdit: () => void; onDelete: () => void; onPublish: () => void; onPreview: () => void; onSlides: () => void;
 }) {
   const cat = categories.find(c => c.id === d.category_id);
   const Ic  = getIcon(cat?.icon);
@@ -560,6 +947,7 @@ function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview }: {
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={onPreview} title="Preview" className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+        <button onClick={onSlides}  title="Section slides" className="p-1.5 text-gray-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg transition-colors"><ChevronRight className="w-3.5 h-3.5" /></button>
         <button onClick={onEdit}    title="Edit"    className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
         <button onClick={() => { navigator.clipboard.writeText(`${d.title}\n\n${d.body}`); toast.success('Copied'); }}
           title="Copy" className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><Copy className="w-3.5 h-3.5" /></button>
@@ -568,6 +956,185 @@ function DraftRow({ d, categories, onEdit, onDelete, onPublish, onPreview }: {
         )}
         <button onClick={onDelete} title="Delete" className="p-1.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
       </div>
+    </div>
+  );
+}
+
+// ── Section splitter utility ──────────────────────────────────────────────────
+function parseSections(title: string, body: string): { title: string; body: string }[] {
+  // Detect header lines: ALL CAPS / Title-like line ending with ':'
+  const headerRe = /^([A-Z][A-Z\s\W]{3,}):\s*$/m;
+  const lines = body.split('\n');
+  const sections: { title: string; body: string }[] = [];
+  let curTitle = '';
+  let curLines: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Detect section header: all caps (3+ chars) followed by ':'
+    if (/^[A-Z\s\W]{3,}:$/.test(trimmed) && trimmed.length < 60) {
+      if (curLines.filter(l => l.trim()).length > 0) {
+        sections.push({ title: curTitle || title, body: curLines.join('\n').trim() });
+      }
+      curTitle = trimmed.replace(/:$/, '').trim();
+      curLines = [];
+    } else {
+      curLines.push(line);
+    }
+  }
+  if (curLines.filter(l => l.trim()).length > 0) {
+    sections.push({ title: curTitle || title, body: curLines.join('\n').trim() });
+  }
+
+  // Fallback: split by double newlines into max-6 chunks
+  if (sections.length < 2) {
+    const chunks = body.split(/\n{2,}/).filter(c => c.trim()).map((c, i) => ({ title: `${title} (${i + 1})`, body: c.trim() }));
+    return chunks.length > 1 ? chunks : [{ title, body }];
+  }
+  return sections;
+}
+
+// ── Section Carousel Modal ────────────────────────────────────────────────────
+function SectionCarouselModal({ item, theme, fontCss, fontId, onClose }: {
+  item: any; theme: CardTheme; fontCss: string; fontId: string; onClose: () => void;
+}) {
+  const sections = useMemo(() => parseSections(item.title, item.body || ''), [item]);
+  const [idx, setIdx]           = useState(0);
+  const [format, setFormat]     = useState<ExportFormat>('post');
+  const [showWm, setShowWm]     = useState(true);
+  const [wm, setWm]             = useState('Tinyuwizev1.1');
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const cur = sections[idx];
+
+  const dlAll = async () => {
+    setProgress({ done: 0, total: sections.length });
+    const opts = { format, theme, fontId, watermark: wm, showWatermark: showWm };
+    try {
+      await downloadAsCarousel(
+        sections.map(s => ({ ...item, title: s.title, body: s.body })),
+        opts, (done, total) => setProgress({ done, total })
+      );
+      toast.success(`${sections.length} section slides downloaded`);
+      setProgress(null);
+    } catch { toast.error('Export failed'); setProgress(null); }
+  };
+
+  const dlSingle = async () => {
+    await downloadCardAsImage(
+      { ...item, title: cur.title, body: cur.body },
+      { format, theme, fontId, watermark: wm, showWatermark: showWm }
+    );
+    toast.success('Slide downloaded');
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="flex gap-6 items-center" onClick={e => e.stopPropagation()}>
+
+        {/* Prev */}
+        <button onClick={() => setIdx(i => (i - 1 + sections.length) % sections.length)} disabled={sections.length < 2}
+          className="w-12 h-12 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center disabled:opacity-30 transition-colors">
+          <ChevronLeft className="w-6 h-6 text-white" />
+        </button>
+
+        <div className="flex flex-col items-center gap-4">
+          {/* Dot indicator */}
+          <div className="flex items-center gap-1.5">
+            {sections.map((_, i) => (
+              <button key={i} onClick={() => setIdx(i)}
+                className="rounded-full transition-all"
+                style={{ width: i === idx ? 20 : 7, height: 7, background: i === idx ? theme.accentColor : 'rgba(255,255,255,0.4)' }} />
+            ))}
+          </div>
+
+          {/* Card */}
+          <div className="rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: theme.cssBg, color: theme.textColor, fontFamily: fontCss,
+              width: format === 'reel' ? 240 : 380,
+              height: format === 'reel' ? 426 : 380,
+            }}>
+            <div className="relative z-10 p-6 flex flex-col h-full gap-3 overflow-hidden">
+              {/* Section number badge */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: theme.accentColor + '25', color: theme.accentColor }}>
+                  {idx + 1} / {sections.length}
+                </span>
+                {item.bestPlatform && (
+                  <span className="text-[10px] font-medium opacity-60">{item.bestPlatform}</span>
+                )}
+              </div>
+              <h3 className="font-bold text-base leading-snug">{cur.title}</h3>
+              <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: theme.accentColor, opacity: 0.4 }} />
+              <p className="text-sm leading-relaxed flex-1 overflow-y-auto" style={{ opacity: 0.88, whiteSpace: 'pre-wrap' }}>
+                {cur.body}
+              </p>
+              {item.hashtags?.length > 0 && idx === sections.length - 1 && (
+                <div className="flex flex-wrap gap-1 shrink-0">
+                  {(item.hashtags as string[]).slice(0, 5).map((h: string) => (
+                    <span key={h} className="text-[9px] font-semibold" style={{ color: theme.accentColor }}>{h}</span>
+                  ))}
+                </div>
+              )}
+              {showWm && wm && <p className="text-[8px] text-right opacity-35">{wm}</p>}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: theme.accentColor, opacity: 0.35 }} />
+          </div>
+
+          <p className="text-white/50 text-xs">{cur.title}</p>
+
+          {/* Controls */}
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-4 flex flex-col gap-3 w-full">
+            <div className="flex gap-2">
+              {([['post','Post 1:1', ImageIcon], ['reel','Reel 9:16', Film]] as const).map(([f, label, Icon]) => (
+                <button key={f} onClick={() => setFormat(f)}
+                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${format === f ? 'bg-white text-gray-900' : 'bg-white/15 text-white/70 hover:bg-white/25'}`}>
+                  <Icon className="w-3 h-3" />{label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={wm} onChange={e => setWm(e.target.value)} placeholder="Watermark"
+                className="flex-1 bg-white/15 text-white placeholder-white/40 rounded-xl px-3 py-1.5 text-xs outline-none" />
+              <button onClick={() => setShowWm(s => !s)}
+                className={`w-9 h-5 rounded-full flex items-center shrink-0 transition-colors ${showWm ? 'bg-indigo-400 justify-end' : 'bg-white/20 justify-start'}`}>
+                <span className="w-4 h-4 bg-white rounded-full mx-0.5 shadow" />
+              </button>
+            </div>
+            {progress ? (
+              <div>
+                <div className="w-full bg-white/20 rounded-full h-1.5 mb-1">
+                  <div className="bg-indigo-400 h-1.5 rounded-full transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                </div>
+                <p className="text-white/60 text-xs text-center">{progress.done}/{progress.total} slides…</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={dlSingle}
+                  className="py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  <Download className="w-3.5 h-3.5" />This slide
+                </button>
+                <button onClick={dlAll}
+                  className="py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors">
+                  <Download className="w-3.5 h-3.5" />All {sections.length} slides
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Next */}
+        <button onClick={() => setIdx(i => (i + 1) % sections.length)} disabled={sections.length < 2}
+          className="w-12 h-12 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center disabled:opacity-30 transition-colors">
+          <ChevronRight className="w-6 h-6 text-white" />
+        </button>
+      </div>
+
+      <button onClick={onClose} className="absolute top-4 right-4 text-white/60 hover:text-white">
+        <X className="w-6 h-6" />
+      </button>
     </div>
   );
 }
@@ -601,12 +1168,21 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
   const [genCount, setGenCount]         = useState(10);
   const [customTopic, setCustomTopic]   = useState('');
   const [contentType, setContentType]   = useState<ContentType>('post');
+  const [persona, setPersona]           = useState<Persona>('Universal');
   const [generating, setGenerating]     = useState(false);
   const [generated, setGenerated]       = useState<any[]>([]);
   const [selectedIdxs, setSelectedIdxs] = useState<Set<number>>(new Set());
   const [saving, setSaving]             = useState(false);
   const [previewItem, setPreviewItem]   = useState<any | null>(null);
   const [exportModal, setExportModal]   = useState(false);
+  const [carouselModal, setCarouselModal] = useState<{ open: boolean; idx: number }>({ open: false, idx: 0 });
+  const [studio3dItem, setStudio3dItem]     = useState<any | null>(null);
+  const [sectionItem, setSectionItem]       = useState<any | null>(null);
+
+  // Viral analyzer
+  const [viralText, setViralText]     = useState('');
+  const [viralResult, setViralResult] = useState<any>(null);
+  const [viralLoading, setViralLoad]  = useState(false);
 
   // Library
   const [search, setSearch]           = useState('');
@@ -657,11 +1233,11 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
     if (!selectedCat) return toast.error('Select a category first');
     setGenerating(true); setGenerated([]); setSelectedIdxs(new Set());
     try {
-      const items = await api.aiBatchGenerate(selectedCat, genCount, customTopic || undefined, contentType);
+      const items = await api.aiBatchGenerate(selectedCat, genCount, customTopic || undefined, contentType, persona);
       if (!Array.isArray(items) || items.length === 0) { toast.error('No content returned — check AI settings'); return; }
       setGenerated(items);
       setSelectedIdxs(new Set(items.map((_, i) => i)));
-      const label = contentType === 'reel' ? 'reel scripts' : contentType === 'audio' ? 'audio scripts' : 'posts';
+      const label = contentType === 'dialog' ? 'dialog cards' : contentType === 'reel' ? 'reel scripts' : contentType === 'audio' ? 'audio scripts' : 'posts';
       toast.success(`${items.length} ${label} generated`);
     } catch (e: any) { toast.error(e.message || 'Generation failed'); }
     finally { setGenerating(false); }
@@ -674,15 +1250,34 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
     if (selectedIdxs.size === 0) return toast.error('Select items to save');
     setSaving(true);
     try {
-      const items = [...selectedIdxs].map(i => ({
-        category_id: selectedCat, title: generated[i].title, body: generated[i].body,
-        hashtags: generated[i].hashtags, best_platform: generated[i].bestPlatform, language: 'en',
-      }));
+      const items = [...selectedIdxs].map(i => {
+        const g = generated[i];
+        const isDialog = contentType === 'dialog' && g.dialogue;
+        return {
+          category_id: selectedCat,
+          title: g.title,
+          body: isDialog ? JSON.stringify(g.dialogue) : (g.body || ''),
+          hashtags: g.hashtags,
+          best_platform: g.bestPlatform,
+          content_type: contentType,
+          engagement_score: g.engagementScore,
+          persona,
+          language: 'en',
+        };
+      });
       await api.bulkCreateContentDrafts(items);
       toast.success(`${items.length} drafts saved to library`);
       setGenerated([]); setSelectedIdxs(new Set()); load();
     } catch { toast.error('Save failed'); }
     finally { setSaving(false); }
+  };
+
+  const runViralAnalysis = async () => {
+    if (!viralText.trim()) return toast.error('Paste a post to analyze');
+    setViralLoad(true); setViralResult(null);
+    try { const r = await api.aiAnalyzePattern(viralText); setViralResult(r); }
+    catch { toast.error('Analysis failed'); }
+    finally { setViralLoad(false); }
   };
 
   const handleDelete = async (id: string) => {
@@ -705,12 +1300,18 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Modals */}
-      {previewItem  && <PreviewModal item={previewItem}  theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setPreviewItem(null)} />}
-      {previewDraft && <PreviewModal item={previewDraft} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setPreviewDraft(null)} />}
+      {previewItem  && <PreviewModal item={previewItem}  theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setPreviewItem(null)}  onOpen3D={() => setStudio3dItem(previewItem)}  onSections={() => setSectionItem(previewItem)} />}
+      {previewDraft && <PreviewModal item={previewDraft} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setPreviewDraft(null)} onOpen3D={() => setStudio3dItem(previewDraft)} onSections={() => setSectionItem(previewDraft)} />}
       {exportModal && selectedItems.length > 0 && <ExportModal items={selectedItems} theme={activeTheme} fontId={fontId} onClose={() => setExportModal(false)} />}
+      {carouselModal.open && generated.length > 0 && (
+        <CarouselModal items={generated} initialIdx={carouselModal.idx} theme={activeTheme} fontCss={fontCss}
+          fontId={fontId} contentType={contentType} onClose={() => setCarouselModal({ open: false, idx: 0 })} />
+      )}
       {editDraft    && <EditDraftModal draft={editDraft} categories={categories} onSave={u => setDrafts(p => p.map(d => d.id === u.id ? u : d))} onClose={() => setEditDraft(null)} />}
       {publishDraft && <PublishModal draft={publishDraft} projects={projects} onPublished={load} onClose={() => setPublishDraft(null)} />}
       {catModal.open && <CategoryFormModal cat={catModal.cat} onSave={load} onClose={() => setCatModal({ open: false })} />}
+      {studio3dItem && <ThreeDCardViewer item={studio3dItem} onClose={() => setStudio3dItem(null)} />}
+      {sectionItem  && <SectionCarouselModal item={sectionItem} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setSectionItem(null)} />}
 
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 pt-5 pb-0">
@@ -793,14 +1394,27 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                 {/* Content type */}
                 <div>
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Type</p>
-                  <div className="flex gap-1.5">
-                    {([['post','Post',ImageIcon],['reel','Reel',Film],['audio','Audio',Mic]] as const).map(([ct,label,Icon]) => (
-                      <button key={ct} onClick={() => setContentType(ct)}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {([['post','Post',ImageIcon],['reel','Reel',Film],['audio','Audio',Mic],['dialog','Dialog',Sparkles]] as const).map(([ct,label,Icon]) => (
+                      <button key={ct} onClick={() => setContentType(ct as ContentType)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs border transition-colors ${contentType === ct ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-300'}`}>
                         <Icon className="w-3 h-3" />{label}
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Persona picker */}
+              <div className="w-full mt-3 pt-3 border-t dark:border-gray-700">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Target Audience</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PERSONAS.map(p => (
+                    <button key={p} onClick={() => setPersona(p)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${persona === p ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-300'}`}>
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -829,7 +1443,8 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
             <div className="rounded-2xl p-5" style={{ background: activeTheme.cssBg, color: activeTheme.textColor }}>
               <p className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ fontFamily: fontCss, opacity: 0.9 }}>
                 <Sparkles className="w-4 h-4" />
-                {contentType === 'reel' ? 'Reel Script Engine' : contentType === 'audio' ? 'Audio Script Engine' : 'Post Generator'}
+                {contentType === 'dialog' ? 'Dialog Card Generator' : contentType === 'reel' ? 'Reel Script Engine' : contentType === 'audio' ? 'Audio Script Engine' : 'Post Generator'}
+                {contentType === 'dialog' && <span className="text-[10px] font-normal opacity-70">Tinyuwizev1.1 vs Fatikaramuv1.0</span>}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <div className="sm:col-span-2">
@@ -850,7 +1465,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                   <select value={genCount} onChange={e => setGenCount(Number(e.target.value))}
                     className="w-full text-sm rounded-xl px-3 py-2.5 border focus:outline-none"
                     style={{ background: 'rgba(0,0,0,0.22)', borderColor: 'rgba(255,255,255,0.22)', color: activeTheme.textColor }}>
-                    {[5,10,20,25,50].map(n => <option key={n} value={n} style={{ color: '#111', background: '#fff' }}>{n} {contentType === 'reel' ? 'reels' : contentType === 'audio' ? 'scripts' : 'posts'}</option>)}
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n} style={{ color: '#111', background: '#fff' }}>{n} {contentType === 'reel' ? 'reel' : contentType === 'audio' ? 'script' : contentType === 'dialog' ? 'dialog' : 'post'}{n > 1 ? 's' : ''}</option>)}
                   </select>
                 </div>
               </div>
@@ -859,7 +1474,7 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                 style={{ background: activeTheme.accentColor, color: activeTheme.from }}>
                 {generating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
-                  : <><Wand2 className="w-4 h-4" />Generate {genCount} {contentType === 'reel' ? 'Reels' : contentType === 'audio' ? 'Scripts' : 'Posts'}</>}
+                  : <><Wand2 className="w-4 h-4" />Generate {genCount} {contentType === 'dialog' ? 'Dialog Cards' : contentType === 'reel' ? 'Reels' : contentType === 'audio' ? 'Scripts' : 'Posts'}</>}
               </button>
             </div>
 
@@ -870,10 +1485,14 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     {generated.length} generated &nbsp;&middot;&nbsp; {selectedIdxs.size} selected
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button onClick={toggleAll}
                       className="text-xs text-indigo-500 hover:text-indigo-700 font-medium px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                       {selectedIdxs.size === generated.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <button onClick={() => setCarouselModal({ open: true, idx: 0 })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <ChevronRight className="w-3 h-3" />Browse Carousel
                     </button>
                     {selectedIdxs.size > 0 && (
                       <>
@@ -894,11 +1513,61 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                     <ContentCard key={i} item={item} theme={activeTheme} fontCss={fontCss}
                       isSelected={selectedIdxs.has(i)} contentType={contentType}
                       onToggle={() => toggleIdx(i)}
-                      onPreview={() => setPreviewItem(item)} />
+                      onPreview={() => setCarouselModal({ open: true, idx: i })} />
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Viral Pattern Analyzer */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-rose-400" />Viral Pattern Analyzer
+                <span className="text-[10px] font-normal text-gray-400">— paste any post to decode what makes it go viral</span>
+              </h3>
+              <textarea value={viralText} onChange={e => setViralText(e.target.value)} rows={4}
+                placeholder="Paste a viral post here to analyze its formula, hook type, emotional trigger, and why it works..."
+                className="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm resize-none focus:ring-2 focus:ring-rose-300 outline-none mb-3" />
+              <button onClick={runViralAnalysis} disabled={viralLoading || !viralText.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 text-white rounded-xl text-sm font-medium hover:bg-rose-600 disabled:opacity-50">
+                {viralLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}Analyze Pattern
+              </button>
+              {viralResult && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Hook Type', val: viralResult.hookType, color: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' },
+                    { label: 'Emotion Trigger', val: viralResult.emotionTrigger, color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300' },
+                    { label: 'Format', val: viralResult.format, color: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+                    { label: 'Viral Score', val: viralResult.score ? `${viralResult.score}/10` : '—', color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' },
+                  ].map(s => (
+                    <div key={s.label} className={`rounded-xl p-3 ${s.color}`}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70 mb-0.5">{s.label}</p>
+                      <p className="text-sm font-bold capitalize">{s.val || '—'}</p>
+                    </div>
+                  ))}
+                  {viralResult.whyItWorks && (
+                    <div className="col-span-2 bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Why It Works</p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{viralResult.whyItWorks}</p>
+                    </div>
+                  )}
+                  {viralResult.template && (
+                    <div className="col-span-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1">Replicable Template</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 font-mono leading-relaxed">{viralResult.template}</p>
+                        </div>
+                        <button onClick={() => { navigator.clipboard.writeText(viralResult.template); toast.success('Template copied'); }}
+                          className="shrink-0 p-1.5 text-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-lg transition-colors">
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -934,7 +1603,8 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
                     onEdit={() => setEditDraft(d)}
                     onDelete={() => handleDelete(d.id)}
                     onPublish={() => setPublishDraft(d)}
-                    onPreview={() => setPreviewDraft(d)} />
+                    onPreview={() => setPreviewDraft(d)}
+                    onSlides={() => setSectionItem(d)} />
                 ))}
               </div>
             )}

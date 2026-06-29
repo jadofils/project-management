@@ -72,6 +72,7 @@ export class Task {
   @Column({ type: 'varchar', length: 200, nullable: true }) module!: string | null;
   @Column({ type: 'int', default: 0 }) subtask_count!: number;
   @Column({ type: 'int', default: 0 }) subtasks_done!: number;
+  @Column({ type: 'simple-json', nullable: true }) image_urls!: string[] | null;
   @CreateDateColumn() created_at!: Date;
   @UpdateDateColumn() updated_at!: Date;
   @ManyToOne(() => Project, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'project_id' }) project!: Project;

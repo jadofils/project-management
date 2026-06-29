@@ -13,6 +13,7 @@ export interface TaskMailPayload {
   taskTitle: string; taskDescription?: string; projectName?: string;
   status?: string; priority?: string; dueDate?: string;
   actorName?: string; comment?: string; phase?: string;
+  project_id?: string; task_id?: string; imageUrls?: string[];
 }
 
 export interface InvitationPayload {
@@ -72,7 +73,47 @@ export class MailService {
     }
   }
 
-  async send(payload: TaskMailPayload) { const { subject, html } = this.buildTaskEmail(payload); await this.deliver(payload.to, subject, html, { type: payload.type }); }
+  // ── Digest queue — batch task emails per recipient within 10 s ───────────
+  private readonly digestQueue = new Map<string, { tasks: TaskMailPayload[]; timer: ReturnType<typeof setTimeout> }>();
+  private readonly DIGEST_DELAY = 10_000;
+
+  async send(payload: TaskMailPayload) {
+    const batchTypes: NotificationType[] = ['task_assigned', 'task_updated', 'task_completed', 'phase_task_created'];
+    if (batchTypes.includes(payload.type)) {
+      this.queueDigest(payload);
+      return;
+    }
+    // comment / review send immediately
+    const { subject, html } = this.buildTaskEmail(payload);
+    await this.deliver(payload.to, subject, html, { type: payload.type });
+  }
+
+  private queueDigest(payload: TaskMailPayload) {
+    const existing = this.digestQueue.get(payload.to);
+    if (existing) {
+      clearTimeout(existing.timer);
+      existing.tasks.push(payload);
+      existing.timer = setTimeout(() => this.flushDigest(payload.to), this.DIGEST_DELAY);
+    } else {
+      const timer = setTimeout(() => this.flushDigest(payload.to), this.DIGEST_DELAY);
+      this.digestQueue.set(payload.to, { tasks: [payload], timer });
+    }
+  }
+
+  private async flushDigest(email: string) {
+    const queue = this.digestQueue.get(email);
+    if (!queue) return;
+    this.digestQueue.delete(email);
+    if (queue.tasks.length === 1) {
+      const { subject, html } = this.buildTaskEmail(queue.tasks[0]);
+      await this.deliver(email, subject, html, { type: queue.tasks[0].type });
+      return;
+    }
+    const recipientName = queue.tasks[0].recipientName;
+    const subject = `[ipfundo] ${queue.tasks.length} task updates for you`;
+    const html = this.buildDigestEmail(recipientName, queue.tasks);
+    await this.deliver(email, subject, html, { type: 'task_digest' });
+  }
 
   async sendProjectInviteNew(opts: { to: string; inviterName: string; projectName: string; role: string; token: string; expiresAt: Date; project_id?: string; sender_id?: string; invitation_id?: string }) {
     const appUrl = process.env.FRONTEND_URL || '';
@@ -148,9 +189,49 @@ export class MailService {
     for (const r of Array.isArray(payload.to) ? payload.to : [payload.to]) await this.deliver(r, payload.subject, html, { type: 'custom', sender_id, project_id: payload.project_id });
   }
 
+  // ── Digest email builder ──────────────────────────────────────────────────
+  private buildDigestEmail(recipientName: string, tasks: TaskMailPayload[]): string {
+    const appUrl = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+    const taskRows = tasks.map(t => {
+      const priorityColor = PRIORITY_COLORS[t.priority || 'medium'] || '#6366f1';
+      const taskUrl = t.project_id ? `${appUrl}?project=${t.project_id}` : appUrl;
+      const label: Record<NotificationType, string> = {
+        task_assigned: 'Assigned to you', task_updated: 'Updated', task_completed: 'Completed',
+        task_review: 'Ready for review', comment_added: 'New comment', phase_task_created: 'New task',
+      };
+      const desc = t.taskDescription
+        ? `<p style="margin:4px 0 0;font-size:12px;color:#64748b;line-height:1.5">${t.taskDescription}</p>`
+        : '';
+      return `<tr>
+        <td style="padding:14px 16px;border-bottom:1px solid #f1f5f9;vertical-align:top">
+          <table width="100%"><tr>
+            <td style="vertical-align:top">
+              <p style="margin:0;font-size:13px;font-weight:600;color:#1e293b">${t.taskTitle}</p>
+              ${desc}
+              ${t.projectName ? `<p style="margin:4px 0 0;font-size:11px;color:#94a3b8">${t.projectName}</p>` : ''}
+            </td>
+            <td style="text-align:right;vertical-align:top;white-space:nowrap;padding-left:12px">
+              <span style="display:inline-block;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;background:${priorityColor}18;color:${priorityColor};text-transform:uppercase">${t.priority || 'medium'}</span><br>
+              <span style="font-size:10px;color:#94a3b8;display:inline-block;margin-top:3px">${label[t.type]}</span><br>
+              <a href="${taskUrl}" style="font-size:10px;color:#4f46e5;text-decoration:none;font-weight:500">View →</a>
+            </td>
+          </tr></table>
+        </td></tr>`;
+    }).join('');
+
+    return this.wrap(`
+      <p style="font-size:14px;color:#374151;line-height:1.7">Hi <strong>${recipientName}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.7">You have <strong style="color:#4f46e5">${tasks.length} task updates</strong> waiting for your attention:</p>
+      <table width="100%" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin:20px 0;border-spacing:0">
+        ${taskRows}
+      </table>
+      ${this.button(appUrl, 'Open Project Manager')}
+    `);
+  }
+
   // ── Task email builder ────────────────────────────────────────────────────
   private buildTaskEmail(p: TaskMailPayload): { subject: string; html: string } {
-    const appUrl = process.env.FRONTEND_URL || '';
+    const appUrl = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
     const priorityColor = PRIORITY_COLORS[p.priority || 'medium'] || '#6366f1';
     const statusLabel = STATUS_LABELS[p.status || ''] || p.status || '';
     const phaseLabel = p.phase ? (PHASE_LABELS[p.phase] || p.phase) : '';
@@ -188,12 +269,24 @@ export class MailService {
       phase_task_created: `<p style="font-size:14px;color:#374151;line-height:1.7">Hi <strong>${p.recipientName}</strong>,</p><p style="font-size:14px;color:#374151;line-height:1.7">A new <strong>${phaseLabel}</strong> task has been created by <strong style="color:#4f46e5">${p.actorName || 'a team member'}</strong>. It may be relevant to your work.</p>`,
     };
 
+    const taskUrl = p.project_id ? `${appUrl}?project=${p.project_id}` : appUrl;
+
+    const imagesBlock = p.imageUrls?.length
+      ? `<div style="margin:16px 0">
+          <p style="font-size:11px;color:#64748b;font-weight:600;letter-spacing:0.4px;margin:0 0 8px">ATTACHMENTS (${p.imageUrls.length})</p>
+          <table><tr>${p.imageUrls.slice(0, 4).map(url =>
+            `<td style="padding:0 6px 0 0"><a href="${url}" target="_blank"><img src="${url}" alt="screenshot" style="width:120px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block"/></a></td>`
+          ).join('')}</tr></table>
+          ${p.imageUrls.length > 4 ? `<p style="margin:6px 0 0;font-size:11px;color:#94a3b8">+${p.imageUrls.length - 4} more attachment(s)</p>` : ''}
+        </div>`
+      : '';
+
     const html = this.wrap(`
       <table width="100%" style="margin-bottom:20px"><tr>
         <td style="border-radius:12px;padding:16px 20px;background:${iconColor}10;border:1px solid ${iconColor}30">
-          <table><tr>
+          <table width="100%"><tr>
             <td style="vertical-align:middle;padding-right:12px">
-              <span style="display:inline-flex;width:36px;height:36px;background:${iconColor};border-radius:10px;align-items:center;justify-content:center">${ICONS[icon] ? `<span style="color:white;line-height:1;font-weight:700;font-size:16px">${icon === 'user' ? '☷' : icon === 'flag' ? '⚑' : icon === 'check' ? '✓' : icon === 'star' ? '★' : icon === 'mail' ? '✉' : '⏱'}</span>` : ''}</span>
+              <span style="display:inline-flex;width:36px;height:36px;background:${iconColor};border-radius:10px;align-items:center;justify-content:center"><span style="color:white;line-height:1;font-weight:700;font-size:16px">${icon === 'user' ? '☷' : icon === 'flag' ? '⚑' : icon === 'check' ? '✓' : icon === 'star' ? '★' : icon === 'mail' ? '✉' : '⏱'}</span></span>
             </td>
             <td>
               <p style="margin:0;font-size:15px;font-weight:700;color:${iconColor}">${labels[p.type]}</p>
@@ -202,15 +295,22 @@ export class MailService {
           </tr></table>
         </td></tr></table>
       ${bodyTexts[p.type]}
-      <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:18px;margin:20px 0">
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:20px 0">
         <table width="100%">
-          <tr><td colspan="2" style="padding-bottom:12px"><strong style="font-size:15px;color:#1e293b">${p.taskTitle}</strong></td></tr>
+          <tr><td colspan="2" style="padding-bottom:10px">
+            <strong style="font-size:16px;color:#1e293b;line-height:1.4">${p.taskTitle}</strong>
+          </td></tr>
           <tr>
-            <td style="width:50%;padding-bottom:10px"><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;background:${priorityColor}18;color:${priorityColor};text-transform:uppercase">${p.priority || 'medium'}</span></td>
-            <td style="width:50%;padding-bottom:10px;text-align:right">${statusLabel ? `<span style="font-size:11px;color:#64748b;font-weight:500">${statusLabel}</span>` : ''}</td>
+            <td style="width:50%;padding-bottom:12px"><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;background:${priorityColor}18;color:${priorityColor};text-transform:uppercase;letter-spacing:0.5px">${p.priority || 'medium'}</span></td>
+            <td style="width:50%;padding-bottom:12px;text-align:right">${statusLabel ? `<span style="font-size:11px;color:#64748b;font-weight:500;background:#f8fafc;border:1px solid #e2e8f0;padding:3px 8px;border-radius:6px">${statusLabel}</span>` : ''}</td>
           </tr>
-          ${p.taskDescription ? `<tr><td colspan="2" style="padding-bottom:8px"><p style="margin:0;font-size:13px;color:#64748b;line-height:1.5">${p.taskDescription}</p></td></tr>` : ''}
-          <tr><td colspan="2" style="padding-top:4px">
+          ${p.taskDescription ? `<tr><td colspan="2" style="padding-bottom:12px">
+            <div style="background:#f8fafc;border-left:3px solid ${iconColor};padding:10px 14px;border-radius:0 8px 8px 0">
+              <p style="margin:0 0 3px;font-size:10px;font-weight:600;color:#94a3b8;letter-spacing:0.4px;text-transform:uppercase">Description</p>
+              <p style="margin:0;font-size:13px;color:#374151;line-height:1.6">${p.taskDescription}</p>
+            </div>
+          </td></tr>` : ''}
+          <tr><td colspan="2">
             <table width="100%" style="font-size:11px;color:#94a3b8">
               <tr>
                 ${phaseLabel ? `<td><span style="color:#64748b;font-weight:500">${phaseLabel}</span></td>` : '<td></td>'}
@@ -220,7 +320,8 @@ export class MailService {
           </td></tr>
         </table>
       </div>
-      ${this.button(appUrl, 'View Task')}
+      ${imagesBlock}
+      ${this.button(taskUrl, 'Open in Project Manager')}
     `);
     return { subject: subjects[p.type], html };
   }

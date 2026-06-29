@@ -11,4 +11,6 @@ export class TasksController {
   @Patch(':id') update(@Param('id') id: string, @Req() req: any, @Body() dto: any) { return this.svc.update(id, { ...dto, _actor_id: req.user.sub }); }
   @Delete(':id') delete(@Param('id') id: string) { return this.svc.delete(id); }
   @Patch(':id/like') toggleLike(@Param('id') id: string, @Req() req: any) { return this.svc.toggleLike(id, req.user.sub); }
+  @Post(':id/images') addImages(@Param('id') id: string, @Body() body: { images: string[] }) { return this.svc.addImages(id, body.images); }
+  @Delete(':id/images') removeImage(@Param('id') id: string, @Body() body: { url: string }) { return this.svc.removeImage(id, body.url); }
 }

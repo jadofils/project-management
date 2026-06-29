@@ -5,8 +5,8 @@ import { ThemeProvider } from './lib/ThemeContext';
 import { registerPushNotifications } from './services/notifications';
 import './index.css';
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA — production only (dev breaks Vite HMR)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
 }
 

@@ -135,10 +135,13 @@ Return ONLY a valid JSON array:
 Category: ${cat.description || ''}
 Generate ${count} unique posts with maximum engagement.${noDupe}
 
+IMPORTANT: Use real Unicode emoji (e.g. 😭 🔥 ✍️ 💀) — NOT text like :) or [emoji]. Emoji should feel natural like WhatsApp messages.
+Write in sections with clear ALL CAPS headers followed by ':' when the content has multiple parts (e.g. "TEXTING YOUR CRUSH:" then "TEXTING YOUR BESTIE:").
+
 Return ONLY a valid JSON array:
 [{
   "title": "Scroll-stopping title (max 80 chars)",
-  "body": "Full engaging post — storytelling, humor, shocking facts, relatable situations. Use emojis naturally. 100-250 words.",
+  "body": "Full engaging post — storytelling, humor, shocking facts, relatable situations. Use real emoji naturally. 100-250 words. Use section headers when applicable.",
   "hashtags": ["#tag1","#tag2","#tag3","#tag4","#tag5"],
   "bestPlatform": "Instagram/TikTok/Twitter/Facebook/LinkedIn",
   "engagementScore": 8

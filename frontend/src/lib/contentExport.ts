@@ -13,18 +13,20 @@ export interface CardTheme {
 }
 
 export const CARD_THEMES: CardTheme[] = [
-  { id: 'dreamy',    name: 'Dreamy',    isGradient: true,  from: '#667eea', to: '#764ba2', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.55)', accentColor: '#e0c3fc', cssBg: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)' },
-  { id: 'ocean',     name: 'Ocean',     isGradient: true,  from: '#0093E9', to: '#80D0C7', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.55)', accentColor: '#b3f5ff', cssBg: 'linear-gradient(135deg,#0093E9 0%,#80D0C7 100%)' },
-  { id: 'sunset',    name: 'Sunset',    isGradient: true,  from: '#f093fb', to: '#f5576c', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.55)', accentColor: '#ffd6e0', cssBg: 'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)' },
-  { id: 'forest',    name: 'Forest',    isGradient: true,  from: '#11998e', to: '#38ef7d', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.55)', accentColor: '#c6ffe4', cssBg: 'linear-gradient(135deg,#11998e 0%,#38ef7d 100%)' },
-  { id: 'midnight',  name: 'Midnight',  isGradient: true,  from: '#0f0c29', to: '#302b63', textColor: '#e8e8ff', fadedColor: 'rgba(232,232,255,0.45)', accentColor: '#a78bfa', cssBg: 'linear-gradient(135deg,#0f0c29 0%,#302b63 100%)' },
-  { id: 'golden',    name: 'Golden',    isGradient: true,  from: '#f7971e', to: '#ffd200', textColor: '#1a0e00', fadedColor: 'rgba(26,14,0,0.45)',      accentColor: '#7c4200', cssBg: 'linear-gradient(135deg,#f7971e 0%,#ffd200 100%)' },
-  { id: 'coral',     name: 'Coral',     isGradient: true,  from: '#ff6b6b', to: '#feca57', textColor: '#1a0000', fadedColor: 'rgba(26,0,0,0.45)',       accentColor: '#6b0000', cssBg: 'linear-gradient(135deg,#ff6b6b 0%,#feca57 100%)' },
-  { id: 'carbon',    name: 'Carbon',    isGradient: false, from: '#0d1117', to: '#0d1117', textColor: '#e6edf3', fadedColor: 'rgba(230,237,243,0.4)',    accentColor: '#58a6ff', cssBg: '#0d1117' },
-  { id: 'neon',      name: 'Neon',      isGradient: false, from: '#0a0a0a', to: '#0a0a0a', textColor: '#39ff14', fadedColor: 'rgba(57,255,20,0.45)',     accentColor: '#ff006e', cssBg: '#0a0a0a' },
-  { id: 'storm',     name: 'Storm',     isGradient: true,  from: '#373b44', to: '#4286f4', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.5)',    accentColor: '#90caf9', cssBg: 'linear-gradient(135deg,#373b44 0%,#4286f4 100%)' },
-  { id: 'cream',     name: 'Cream',     isGradient: false, from: '#fdf6ec', to: '#fdf6ec', textColor: '#1a1200', fadedColor: 'rgba(26,18,0,0.4)',        accentColor: '#7c5500', cssBg: '#fdf6ec' },
-  { id: 'rose-gold', name: 'Rose Gold', isGradient: true,  from: '#c9a227', to: '#f490b1', textColor: '#ffffff', fadedColor: 'rgba(255,255,255,0.5)',    accentColor: '#ffe0f0', cssBg: 'linear-gradient(135deg,#c9a227 0%,#f490b1 100%)' },
+  // ── Open-book / editorial collection ─────────────────────────────────────
+  { id: 'manuscript', name: 'Manuscript', isGradient: true,  from: '#f5f0e8', to: '#ede4d3', textColor: '#1c1208', fadedColor: 'rgba(28,18,8,0.38)',     accentColor: '#8b6914', cssBg: 'linear-gradient(160deg,#f5f0e8 0%,#ede4d3 100%)' },
+  { id: 'oxford',     name: 'Oxford',     isGradient: true,  from: '#0d1b2e', to: '#1a2f4e', textColor: '#f0ead6', fadedColor: 'rgba(240,234,214,0.45)', accentColor: '#c9a941', cssBg: 'linear-gradient(160deg,#0d1b2e 0%,#1a2f4e 100%)' },
+  { id: 'library',    name: 'Library',    isGradient: true,  from: '#2c1a0e', to: '#4a2c14', textColor: '#f2e8d5', fadedColor: 'rgba(242,232,213,0.45)', accentColor: '#d4a853', cssBg: 'linear-gradient(160deg,#2c1a0e 0%,#4a2c14 100%)' },
+  { id: 'parchment',  name: 'Parchment',  isGradient: true,  from: '#e8dcc8', to: '#d6c9a8', textColor: '#2a1f10', fadedColor: 'rgba(42,31,16,0.4)',     accentColor: '#8b4513', cssBg: 'linear-gradient(160deg,#e8dcc8 0%,#d6c9a8 100%)' },
+  { id: 'inkpaper',   name: 'Ink & Paper',isGradient: false, from: '#f8f7f2', to: '#f8f7f2', textColor: '#0f0f0f', fadedColor: 'rgba(15,15,15,0.38)',    accentColor: '#c41e3a', cssBg: '#f8f7f2' },
+  { id: 'emerald',    name: 'Emerald',    isGradient: true,  from: '#0d2b1e', to: '#1a4a30', textColor: '#e8f5ee', fadedColor: 'rgba(232,245,238,0.45)', accentColor: '#d4a853', cssBg: 'linear-gradient(160deg,#0d2b1e 0%,#1a4a30 100%)' },
+  // ── Professional editorial tones ──────────────────────────────────────────
+  { id: 'slate',      name: 'Slate',      isGradient: true,  from: '#1e2530', to: '#2d3748', textColor: '#e2e8f0', fadedColor: 'rgba(226,232,240,0.42)', accentColor: '#7eb8e8', cssBg: 'linear-gradient(160deg,#1e2530 0%,#2d3748 100%)' },
+  { id: 'crimson',    name: 'Crimson',    isGradient: true,  from: '#2d0a14', to: '#4a1020', textColor: '#f5e6ea', fadedColor: 'rgba(245,230,234,0.45)', accentColor: '#e8a0a8', cssBg: 'linear-gradient(160deg,#2d0a14 0%,#4a1020 100%)' },
+  { id: 'ivory',      name: 'Ivory',      isGradient: true,  from: '#fffff0', to: '#f5f5dc', textColor: '#1a1a2e', fadedColor: 'rgba(26,26,46,0.38)',    accentColor: '#1a1a2e', cssBg: 'linear-gradient(160deg,#fffff0 0%,#f5f5dc 100%)' },
+  { id: 'ebony',      name: 'Ebony',      isGradient: false, from: '#0a0a0a', to: '#0a0a0a', textColor: '#f0f0f0', fadedColor: 'rgba(240,240,240,0.38)', accentColor: '#c0c0c0', cssBg: '#0a0a0a' },
+  { id: 'goldleaf',   name: 'Gold Leaf',  isGradient: true,  from: '#1a1408', to: '#2e2410', textColor: '#f0e6c0', fadedColor: 'rgba(240,230,192,0.45)', accentColor: '#d4a017', cssBg: 'linear-gradient(160deg,#1a1408 0%,#2e2410 100%)' },
+  { id: 'charcoal',   name: 'Charcoal',   isGradient: true,  from: '#2a2a2a', to: '#404040', textColor: '#f4f4f4', fadedColor: 'rgba(244,244,244,0.42)', accentColor: '#a8c4d4', cssBg: 'linear-gradient(160deg,#2a2a2a 0%,#404040 100%)' },
 ];
 
 export const FONT_OPTIONS = [
@@ -182,14 +184,151 @@ export function drawCardToCanvas(
   ctx.fillRect(0, H - 5, W, 5);
 }
 
+// ── Dialog card: bubble helper ────────────────────────────────────────────────
+function drawBubble(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number, y: number,
+  maxW: number,
+  bgColor: string, bgAlpha: number,
+  textColor: string,
+  fontSize: number, font: string,
+  bubblePad: number, radius: number,
+): number {
+  ctx.font = `${fontSize}px ${font}`;
+  const innerW = maxW - bubblePad * 2;
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > innerW && line) { lines.push(line); line = word; }
+    else { line = test; }
+  }
+  if (line) lines.push(line);
+  const bh = lines.length * fontSize * 1.5 + bubblePad * 2;
+  ctx.fillStyle = bgColor;
+  ctx.globalAlpha = bgAlpha;
+  rrect(ctx, x, y, maxW, bh, radius);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'left';
+  let ty = y + bubblePad + fontSize;
+  for (const l of lines) { ctx.fillText(l, x + bubblePad, ty); ty += fontSize * 1.5; }
+  return y + bh;
+}
+
+// ── Dialog card canvas ────────────────────────────────────────────────────────
+export function drawDialogCardToCanvas(
+  canvas: HTMLCanvasElement,
+  item: { title: string; dialogue?: { speaker: string; text: string }[]; hashtags?: string[]; bestPlatform?: string },
+  opts: ExportOptions,
+): void {
+  const { theme, showWatermark, watermark } = opts;
+  const font = getFontName(opts.fontId);
+  const isReel = opts.format === 'reel';
+  const W = canvas.width;
+  const H = canvas.height;
+  const pad = Math.round(W * 0.06);
+  const cw  = W - pad * 2;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.clearRect(0, 0, W, H);
+  applyBg(ctx, theme, W, H);
+
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = theme.textColor;
+  ctx.beginPath();
+  ctx.arc(W * 0.5, -W * 0.07, W * 0.52, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  let y = pad * 1.3;
+
+  // Title
+  const ts = isReel ? Math.round(W * 0.048) : Math.round(W * 0.044);
+  ctx.font = `bold ${ts}px ${font}`;
+  ctx.fillStyle = theme.textColor;
+  y = wrapText(ctx, item.title, pad, y, cw, ts * 1.3, 2);
+  y += Math.round(ts * 0.3);
+
+  // Divider
+  ctx.fillStyle = theme.accentColor;
+  ctx.globalAlpha = 0.45;
+  ctx.fillRect(pad, y, cw, 2);
+  ctx.globalAlpha = 1;
+  y += Math.round(W * 0.032);
+
+  // Bubbles
+  const dialogue = item.dialogue || [];
+  const bs = Math.round(W * 0.026);
+  const ns = Math.round(W * 0.019);
+  const bp = Math.round(W * 0.028);
+  const bw = Math.round(cw * 0.73);
+  const br = Math.round(W * 0.018);
+  const gap = Math.round(W * 0.022);
+
+  for (const line of dialogue) {
+    const isT  = line.speaker === 'T';
+    const name = isT ? 'Tinyuwizev1.1' : 'Fatikaramuv1.0';
+    const bx   = isT ? pad : W - pad - bw;
+    // Name label
+    ctx.font = `bold ${ns}px ${font}`;
+    ctx.fillStyle = isT ? theme.accentColor : theme.fadedColor;
+    ctx.textAlign = isT ? 'left' : 'right';
+    ctx.fillText(name, isT ? pad : W - pad, y);
+    y += Math.round(ns * 1.4);
+    // Bubble
+    const bgColor = isT ? theme.accentColor : '#ffffff';
+    const bgAlpha = isT ? 0.85 : 0.18;
+    const textCol = isT ? theme.from : theme.textColor;
+    ctx.textAlign = 'left';
+    y = drawBubble(ctx, line.text, bx, y, bw, bgColor, bgAlpha, textCol, bs, font, bp, br) + gap;
+    if (y > H * 0.83) break;
+  }
+
+  // Hashtags
+  if (item.hashtags?.length && y < H * 0.88) {
+    const hs = Math.round(W * 0.022);
+    ctx.font = `${hs}px ${font}`;
+    ctx.fillStyle = theme.accentColor;
+    ctx.textAlign = 'left';
+    wrapText(ctx, item.hashtags.slice(0, 5).join('  '), pad, y + hs, cw, hs * 1.5, 2);
+  }
+
+  // Watermark
+  if (showWatermark && watermark) {
+    const ws = Math.round(W * 0.019);
+    ctx.font = `${ws}px ${font}`;
+    ctx.fillStyle = theme.fadedColor;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(watermark, W - pad, H - Math.round(W * 0.024));
+  }
+
+  // Bottom stripe
+  ctx.fillStyle = theme.accentColor;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(0, H - 5, W, 5);
+}
+
 export function downloadCardAsImage(
-  item: { title: string; body: string; hashtags?: string[]; bestPlatform?: string },
+  item: { title: string; body?: string; dialogue?: { speaker: string; text: string }[]; hashtags?: string[]; bestPlatform?: string; content_type?: string },
   opts: ExportOptions
 ): Promise<void> {
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
   canvas.height = opts.format === 'reel' ? 1920 : 1080;
-  drawCardToCanvas(canvas, item, opts);
+  const dlg = item.dialogue ?? (item.content_type === 'dialog' ? (() => { try { return JSON.parse(item.body || '[]'); } catch { return undefined; } })() : undefined);
+  if (dlg && dlg.length > 0) {
+    drawDialogCardToCanvas(canvas, { ...item, dialogue: dlg }, opts);
+  } else {
+    drawCardToCanvas(canvas, { title: item.title, body: item.body || '', hashtags: item.hashtags, bestPlatform: item.bestPlatform }, opts);
+  }
   return new Promise(resolve => {
     canvas.toBlob(blob => {
       if (!blob) return resolve();
@@ -204,7 +343,7 @@ export function downloadCardAsImage(
 }
 
 export async function downloadMultiple(
-  items: { title: string; body: string; hashtags?: string[]; bestPlatform?: string }[],
+  items: { title: string; body?: string; dialogue?: { speaker: string; text: string }[]; hashtags?: string[]; bestPlatform?: string; content_type?: string }[],
   opts: ExportOptions,
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
@@ -212,5 +351,71 @@ export async function downloadMultiple(
     await downloadCardAsImage(items[i], opts);
     onProgress?.(i + 1, items.length);
     if (i < items.length - 1) await new Promise(r => setTimeout(r, 350));
+  }
+}
+
+// ── Instagram carousel: draw with slide number overlay ────────────────────────
+export async function downloadAsCarousel(
+  items: { title: string; body?: string; dialogue?: { speaker: string; text: string }[]; hashtags?: string[]; bestPlatform?: string; content_type?: string }[],
+  opts: ExportOptions,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const total = items.length;
+  for (let i = 0; i < total; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = opts.format === 'reel' ? 1920 : 1080;
+    const item = items[i];
+    const dlg = item.dialogue ?? (item.content_type === 'dialog' ? (() => { try { return JSON.parse(item.body || '[]'); } catch { return undefined; } })() : undefined);
+    if (dlg && dlg.length > 0) {
+      drawDialogCardToCanvas(canvas, { ...item, dialogue: dlg }, opts);
+    } else {
+      drawCardToCanvas(canvas, { title: item.title, body: item.body || '', hashtags: item.hashtags, bestPlatform: item.bestPlatform }, opts);
+    }
+    // Slide counter overlay
+    const ctx = canvas.getContext('2d')!;
+    const W = canvas.width;
+    const H = canvas.height;
+    const pad = Math.round(W * 0.04);
+    const fs  = Math.round(W * 0.022);
+    const label = `${i + 1} / ${total}`;
+    ctx.font = `bold ${fs}px Arial`;
+    const tw = ctx.measureText(label).width;
+    const bw = tw + fs * 1.2;
+    const bh = fs * 1.8;
+    const bx = W - pad - bw;
+    const by = pad;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, bh / 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx + bw / 2, by + bh / 2);
+    // IG dots indicator at bottom
+    const dotR = Math.round(W * 0.008);
+    const dotsY = H - Math.round(W * 0.045);
+    const spacing = dotR * 3;
+    const startX = W / 2 - ((total - 1) * spacing) / 2;
+    for (let d = 0; d < Math.min(total, 10); d++) {
+      ctx.beginPath();
+      ctx.arc(startX + d * spacing, dotsY, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = d === i ? '#ffffff' : 'rgba(255,255,255,0.38)';
+      ctx.globalAlpha = 1;
+      ctx.fill();
+    }
+    await new Promise<void>(resolve => {
+      canvas.toBlob(blob => {
+        if (!blob) return resolve();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `carousel_${String(i + 1).padStart(2, '0')}_of_${total}_${(item.title || '').slice(0, 15).replace(/[^\w]/g, '_').toLowerCase()}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setTimeout(resolve, 350);
+      }, 'image/png');
+    });
+    onProgress?.(i + 1, total);
   }
 }

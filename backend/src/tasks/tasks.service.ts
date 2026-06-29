@@ -4,6 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Task, TaskAssignmentLog, User, Project, ProjectMember } from '../database/entities';
 import { MailService } from '../mail/mail.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { CloudinaryService } from '../common/cloudinary.service';
 
 const PHASE_ROLES: Record<string, string[]> = {
   backend:        ['backend_dev'],
@@ -26,6 +27,7 @@ export class TasksService {
     @InjectRepository(ProjectMember)     private members: Repository<ProjectMember>,
     private mail: MailService,
     private notifs: ChatGateway,
+    private cloudinary: CloudinaryService,
   ) {}
 
   async getByProject(projectId: string) {
@@ -127,6 +129,23 @@ export class TasksService {
 
   async delete(id: string) { await this.repo.delete(id); }
 
+  async addImages(taskId: string, base64Images: string[]): Promise<Task> {
+    const task = await this.repo.findOne({ where: { id: taskId } });
+    if (!task) throw new NotFoundException('Task not found');
+    const urls = await Promise.all(
+      base64Images.map(b64 => this.cloudinary.uploadImage(b64, 'task-images')),
+    );
+    task.image_urls = [...(task.image_urls || []), ...urls];
+    return this.repo.save(task);
+  }
+
+  async removeImage(taskId: string, imageUrl: string): Promise<Task> {
+    const task = await this.repo.findOne({ where: { id: taskId } });
+    if (!task) throw new NotFoundException('Task not found');
+    task.image_urls = (task.image_urls || []).filter(u => u !== imageUrl);
+    return this.repo.save(task);
+  }
+
   async toggleLike(taskId: string, userId: string): Promise<Task> {
     const task = await this.repo.findOne({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task not found');
@@ -199,6 +218,9 @@ export class TasksService {
         dueDate: task.due_date || undefined,
         phase: task.phase || undefined,
         actorName,
+        project_id: task.project_id,
+        task_id: task.id,
+        imageUrls: task.image_urls || undefined,
       }).catch(e => this.logger.error(`Notify email failed for ${user.email}`, e));
     }));
   }
@@ -239,6 +261,9 @@ export class TasksService {
             dueDate: task.due_date || undefined,
             phase: task.phase || undefined,
             actorName,
+            project_id: task.project_id,
+            task_id: task.id,
+            imageUrls: task.image_urls || undefined,
           }).catch(e => this.logger.error(`Phase notify failed for ${m.user!.email}`, e)),
         ),
     );

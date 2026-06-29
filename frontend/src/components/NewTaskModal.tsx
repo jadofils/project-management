@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, X, Loader2, Users, Search, Trash2, GripVertical } from 'lucide-react';
+import { Plus, X, Loader2, Users, Search, Trash2, ImagePlus } from 'lucide-react';
 import { api, type Task, type User, type Member, userName, userInitials } from '../services/api';
 import { PHASES, getRoleDef, ROLE_CATEGORIES } from '../lib/roles';
 import { COLUMNS } from '../lib/constants';
@@ -12,6 +12,7 @@ interface TaskRow {
   priority: string;
   dueDate: string;
   description: string;
+  images: { file: File; preview: string; base64: string }[];
 }
 
 export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
@@ -19,7 +20,7 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
 }) {
   const [module, setModule] = useState('');
   const [phase, setPhase] = useState('');
-  const [rows, setRows] = useState<TaskRow[]>([{ id: '1', title: '', assigneeIds: [], priority: 'medium', dueDate: '', description: '' }]);
+  const [rows, setRows] = useState<TaskRow[]>([{ id: '1', title: '', assigneeIds: [], priority: 'medium', dueDate: '', description: '', images: [] }]);
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -53,7 +54,25 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
   };
 
   const addRow = () => {
-    setRows(prev => [...prev, { id: String(Date.now()), title: '', assigneeIds: [], priority: 'medium', dueDate: '', description: '' }]);
+    setRows(prev => [...prev, { id: String(Date.now()), title: '', assigneeIds: [], priority: 'medium', dueDate: '', description: '', images: [] }]);
+  };
+
+  const addImages = async (rowId: string, files: FileList | null) => {
+    if (!files) return;
+    const items = await Promise.all(Array.from(files).slice(0, 6).map(file => new Promise<{ file: File; preview: string; base64: string }>(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const result = e.target?.result as string;
+        const base64 = result.split(',')[1];
+        resolve({ file, preview: result, base64 });
+      };
+      reader.readAsDataURL(file);
+    })));
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, images: [...r.images, ...items].slice(0, 6) } : r));
+  };
+
+  const removeImage = (rowId: string, idx: number) => {
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, images: r.images.filter((_, i) => i !== idx) } : r));
   };
 
   const removeRow = (rowId: string) => {
@@ -68,7 +87,7 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
     setSaving(true);
     try {
       for (const row of valid) {
-        const task = await api.createTask({
+        let task = await api.createTask({
           project_id: projectId,
           title: row.title.trim(),
           status: defaultStatus,
@@ -80,6 +99,9 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
           assignee_ids: row.assigneeIds.length ? row.assigneeIds : undefined,
           assignee_id: row.assigneeIds[0] || undefined,
         });
+        if (row.images.length) {
+          task = await api.uploadTaskImages(task.id, row.images.map(i => i.base64)).catch(() => task);
+        }
         onCreated(task);
       }
       toast.success(`${valid.length} task${valid.length > 1 ? 's' : ''} created in module "${module.trim()}"`);
@@ -189,6 +211,25 @@ export function NewTaskModal({ defaultStatus, projectId, onCreated, onClose }: {
                       ))}
                     </div>
                   )}
+                  {/* Image upload */}
+                  <div className="pl-5">
+                    <label className="inline-flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-indigo-500 cursor-pointer border border-dashed border-gray-200 hover:border-indigo-300 rounded-lg px-2.5 py-1.5">
+                      <ImagePlus className="w-3 h-3" />
+                      Add screenshots
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => addImages(row.id, e.target.files)} />
+                    </label>
+                    {row.images.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {row.images.map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <img src={img.preview} alt="" className="w-14 h-14 object-cover rounded-lg border border-gray-200" />
+                            <button onClick={() => removeImage(row.id, idx)}
+                              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] items-center justify-center hidden group-hover:flex">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
