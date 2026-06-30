@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, type FormEvent, type ElementType } from 'react';
 import {
   Link2, Lock, Share2, FileText, Plus, Search, Star, StarOff,
   Trash2, Edit3, X, Eye, EyeOff, Copy, ExternalLink, ChevronDown,
-  ChevronRight, Globe, Pin, PinOff, Tag, FolderPlus, Folder,
-  Check, AlertTriangle, RefreshCw, MoreVertical, Instagram,
-  Twitter, Linkedin, Youtube, Facebook, BookOpen, Lightbulb,
+  ChevronRight, Globe, Pin, PinOff, Folder,
+  Check, AlertTriangle, Instagram,
+  Twitter, Linkedin, Youtube, Facebook,
   Bookmark, Mic, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -319,7 +319,7 @@ function LinkForm({ cats, item, onSave, onClose }: { cats: CategoryDef[]; item: 
   const [fav, setFav]       = useState(item?.favorite || false);
   const selCat = cats.find(c => c.name === cat);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return toast.error('URL is required');
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -558,7 +558,7 @@ function PasswordForm({ item, onSave, onClose }: { item: PasswordItem | null; on
   const sColors = ['bg-red-500','bg-orange-500','bg-yellow-500','bg-lime-500','bg-green-500'];
   const sLabels = ['Very Weak','Weak','Fair','Strong','Very Strong'];
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!site.trim() || !pwd.trim()) return toast.error('Site and password are required');
     onSave({
@@ -754,7 +754,7 @@ function SocialForm({ item, onSave, onClose }: { item: SocialItem | null; onSave
 
   const pDef = SOCIAL_PLATFORMS.find(p => p.name === platform);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!handle.trim()) return toast.error('Handle is required');
     onSave({
@@ -947,7 +947,7 @@ function NoteForm({ cats, item, onSave, onClose }: { cats: CategoryDef[]; item: 
   const [pinned, setPinned] = useState(item?.pinned || false);
   const selCat = cats.find(c => c.name === cat);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return toast.error('Title is required');
     onSave({
@@ -1027,7 +1027,7 @@ function NoteForm({ cats, item, onSave, onClose }: { cats: CategoryDef[]; item: 
 export function AdminVaultPanel() {
   const [tab, setTab] = useState<VaultTab>('links');
 
-  const tabs: { id: VaultTab; label: string; icon: React.ElementType; color: string }[] = [
+  const tabs: { id: VaultTab; label: string; icon: ElementType; color: string }[] = [
     { id:'links',     label:'Links & Resources', icon:Link2,    color:'text-indigo-500' },
     { id:'passwords', label:'Passwords',          icon:Lock,     color:'text-red-500'    },
     { id:'social',    label:'Social Media',       icon:Share2,   color:'text-pink-500'   },
