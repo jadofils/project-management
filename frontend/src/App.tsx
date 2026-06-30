@@ -32,6 +32,7 @@ import { LeavePanel } from './components/LeavePanel';
 import { ReportsPanel } from './components/ReportsPanel';
 import { RecruitmentPanel } from './components/RecruitmentPanel';
 import { ContentPanel } from './components/ContentPanel';
+import { AdminVaultPanel } from './components/AdminVaultPanel';
 import { ProfileSettings } from './components/ProfileSettings';
 import { NotificationCenter } from './components/NotificationCenter';
 import { LandingPage } from './components/LandingPage';
@@ -149,6 +150,7 @@ export default function App() {
       'requests', 'balances', 'calendar',
       'email-logs', 'invitations', 'send-mail',
       'content-generate', 'content-drafts', 'content-published', 'content-categories', 'content-analytics',
+      'vault-links', 'vault-passwords', 'vault-social', 'vault-notes',
     ];
     if (adminOnlySections.includes(section) && user?.system_role !== 'admin') return;
 
@@ -176,6 +178,8 @@ export default function App() {
       setShowMailComposer(true);
     } else if (['content-generate', 'content-drafts', 'content-published', 'content-categories', 'content-analytics'].includes(section)) {
       setTopNav('content' as any);
+    } else if (['vault-links', 'vault-passwords', 'vault-social', 'vault-notes'].includes(section)) {
+      setTopNav('vault' as any);
     } else if (section === 'profile') {
       setTopNav('settings' as any);
     } else if (['board', 'stats', 'members', 'chat', 'feedback'].includes(section)) {
@@ -536,6 +540,10 @@ export default function App() {
       ) : topNav === ('content' as any) ? (
         <div className="flex-1 overflow-auto">
           {isAdmin ? <ContentPanel projects={projects} section={sidebarSection} isAdmin={isAdmin} /> : <ForbiddenPage />}
+        </div>
+      ) : topNav === ('vault' as any) ? (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {isAdmin ? <AdminVaultPanel /> : <ForbiddenPage />}
         </div>
       ) : topNav === ('settings' as any) ? (
         <div className="flex-1 overflow-auto">

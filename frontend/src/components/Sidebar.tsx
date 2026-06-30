@@ -1,4 +1,4 @@
-import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User, Download, Share2, PenTool } from 'lucide-react';
+import { Building2, Users, UserCog, Calendar, Clock, FileText, ChevronRight, Layers, FolderKanban, MessageSquare, BarChart3, Mail, Briefcase, Settings, User, Download, Share2, PenTool, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -103,6 +103,17 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    id: 'vault',
+    label: 'Admin Vault',
+    icon: ShieldCheck,
+    children: [
+      { id: 'vault-links',     label: 'Links & Resources' },
+      { id: 'vault-passwords', label: 'Passwords' },
+      { id: 'vault-social',    label: 'Social Media' },
+      { id: 'vault-notes',     label: 'Notes' },
+    ],
+  },
+  {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
@@ -164,7 +175,7 @@ export function Sidebar({ activeSection, onNavigate, collapsed, onToggle, isAdmi
           const Icon = group.icon;
 
           // Sections restricted to system admins only
-          const adminOnly = ['organization', 'people', 'attendance', 'leave', 'reports', 'recruitment', 'comms', 'content'];
+          const adminOnly = ['organization', 'people', 'attendance', 'leave', 'reports', 'recruitment', 'comms', 'content', 'vault'];
           if (adminOnly.includes(group.id) && !isAdmin) return null;
 
           return (
