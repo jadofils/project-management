@@ -1494,13 +1494,15 @@ interface Props {
   items?: any[];
   initialIdx?: number;
   initialTemplate?: Template3D;
+  initialTheme?: CardTheme;
+  initialFontId?: string;
   onClose: () => void;
 }
 
-export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, initialTemplate, onClose }: Props) {
+export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, initialTemplate, initialTheme, initialFontId, onClose }: Props) {
   const [template, setTemplate]   = useState<Template3D>(initialTemplate ?? 'float');
-  const [theme, setTheme]         = useState<CardTheme>(CARD_THEMES[1]);
-  const [fontId, setFontId]       = useState('georgia');
+  const [theme, setTheme]         = useState<CardTheme>(initialTheme ?? CARD_THEMES[1]);
+  const [fontId, setFontId]       = useState(initialFontId ?? 'georgia');
   const [format, setFormat]       = useState<ExportFormat>('post');
   const [showWm, setShowWm]       = useState(true);
   const [wm, setWm]               = useState('Tinyuwizev1.1');
@@ -1642,8 +1644,8 @@ export function ThreeDCardViewer({ item: singleItem, items, initialIdx = 0, init
                 className="relative shrink-0 rounded-lg overflow-hidden border-2 transition-all"
                 style={{
                   aspectRatio: '1/1.25',
-                  background: CARD_THEMES[(i % CARD_THEMES.length)].cssBg,
-                  borderColor: i === idx ? '#818cf8' : 'transparent',
+                  background: theme.cssBg,
+                  borderColor: i === idx ? theme.accentColor : 'transparent',
                   opacity: i === idx ? 1 : 0.45,
                 }}>
                 <p className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/80 p-0.5 text-center leading-tight line-clamp-3">

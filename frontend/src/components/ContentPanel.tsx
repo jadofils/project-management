@@ -1734,8 +1734,8 @@ export function ContentPanel({ projects, section, isAdmin }: Props) {
         }} />}
       {studio3dItem && (
         studio3dItem.__all
-          ? <ThreeDCardViewer items={generated} initialIdx={cardIdx} initialTemplate={generated[cardIdx]?.template3d} onClose={() => setStudio3dItem(null)} />
-          : <ThreeDCardViewer item={studio3dItem} initialTemplate={studio3dItem.template3d} onClose={() => setStudio3dItem(null)} />
+          ? <ThreeDCardViewer items={generated} initialIdx={cardIdx} initialTemplate={generated[cardIdx]?.template3d} initialTheme={activeTheme} initialFontId={fontId} onClose={() => setStudio3dItem(null)} />
+          : <ThreeDCardViewer item={studio3dItem} initialTemplate={studio3dItem.template3d} initialTheme={activeTheme} initialFontId={fontId} onClose={() => setStudio3dItem(null)} />
       )}
       {sectionItem  && <SectionCarouselModal item={sectionItem} theme={activeTheme} fontCss={fontCss} fontId={fontId} onClose={() => setSectionItem(null)} />}
 
