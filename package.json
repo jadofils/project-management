@@ -2,6 +2,7 @@
   "name": "project-manager",
   "private": true,
   "scripts": {
+    "vercel-build": "cd frontend && npm install && npm run build",
     "build": "cd backend && npm install && npm run build",
     "start": "cd backend && node dist/main",
     "start:prod": "cd backend && node dist/main",
